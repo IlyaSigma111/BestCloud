@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoydaCloud 🇷🇺</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+</head>
+<body>
+    <!-- Экран входа -->
+    <div id="login-screen" class="screen">
+        <div class="login-container">
+            <div class="logo">
+                <h1>☁️ GoydaCloud <span class="russia-flag">🇷🇺</span></h1>
+                <p>Ваше личное файловое хранилище</p>
+            </div>
+            <div class="login-form">
+                <h2>🔐 Вход в систему</h2>
+                <input type="password" id="password-input" placeholder="Введите пароль" autocomplete="off">
+                <button onclick="checkPassword()" id="login-btn">Войти в облако</button>
+                <p id="error-message"></p>
+                <div class="hint">
+                    <small>Пароль: JojoTop1</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Основной интерфейс облака -->
+    <div id="cloud-screen" class="screen" style="display: none;">
+        <header>
+            <div class="header-left">
+                <h1>☁️ GoydaCloud <span class="russia-flag">🇷🇺</span></h1>
+                <p id="storage-info">Использует Firebase Storage</p>
+            </div>
+            <button onclick="logout()" class="logout-btn" title="Выйти из системы">
+                🚪 Выход
+            </button>
+        </header>
+
+        <main>
+            <!-- Панель загрузки -->
+            <section class="upload-card">
+                <h2>📤 Загрузить файлы</h2>
+                <div class="upload-area" onclick="document.getElementById('file-input').click()">
+                    <div class="upload-icon">⬆️</div>
+                    <p>Кликните для выбора файлов</p>
+                    <small>Максимальный размер: 5 ГБ</small>
+                </div>
+                <input type="file" id="file-input" multiple style="display: none;">
+                <div class="upload-controls">
+                    <button onclick="uploadFile()" id="upload-btn" disabled>
+                        Начать загрузку
+                    </button>
+                    <span id="selected-files">Файлы не выбраны</span>
+                </div>
+                <div id="upload-progress" class="progress-container"></div>
+            </section>
+
+            <!-- Список файлов -->
+            <section class="files-card">
+                <div class="files-header">
+                    <h2>📁 Ваши файлы</h2>
+                    <button onclick="loadFiles()" class="refresh-btn" title="Обновить список">
+                        🔄 Обновить
+                    </button>
+                </div>
+                <div id="files-list" class="files-list">
+                    <div class="empty-state">
+                        <p>📭 Файлов пока нет</p>
+                        <small>Загрузите первый файл, чтобы начать</small>
+                    </div>
+                </div>
+                <div id="loading" class="loading" style="display: none;">
+                    <p>Загрузка файлов...</p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>GoydaCloud v1.0 | Все файлы защищены паролем</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
