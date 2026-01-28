@@ -3,6 +3,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 :root {
@@ -25,13 +26,32 @@
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+html {
+    font-size: 16px;
+    height: 100%;
+    overflow-x: hidden;
+}
+
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: var(--dark);
     line-height: 1.6;
     min-height: 100vh;
     overflow-x: hidden;
+    position: relative;
+}
+
+/* Prevent zoom on iOS */
+input, textarea, select {
+    font-size: 16px !important;
+}
+
+/* Better touch targets for mobile */
+button, .btn-action, .file-preview-remove {
+    min-height: 44px;
+    min-width: 44px;
+    cursor: pointer;
 }
 
 /* ===== ЛОГИН ЭКРАН ===== */
@@ -42,6 +62,12 @@ body {
     justify-content: center;
     padding: 20px;
     background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
 }
 
 .login-wrapper {
@@ -123,6 +149,7 @@ body {
     font-weight: 600;
     color: var(--dark);
     margin-bottom: 8px;
+    font-size: 16px;
 }
 
 .password-wrapper {
@@ -137,6 +164,9 @@ body {
     font-size: 16px;
     transition: var(--transition);
     background: var(--light);
+    height: 56px;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .password-wrapper input:focus {
@@ -154,8 +184,13 @@ body {
     border: none;
     color: var(--gray);
     cursor: pointer;
-    font-size: 18px;
-    padding: 5px;
+    font-size: 20px;
+    padding: 10px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .btn-primary {
@@ -164,7 +199,7 @@ body {
     border: none;
     padding: 18px;
     border-radius: var(--radius-sm);
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 600;
     cursor: pointer;
     transition: var(--transition);
@@ -172,11 +207,17 @@ body {
     align-items: center;
     justify-content: center;
     gap: 10px;
+    height: 60px;
+    width: 100%;
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 10px 20px rgba(67, 97, 238, 0.3);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
 }
 
 .error-message {
@@ -185,6 +226,11 @@ body {
     font-weight: 500;
     text-align: center;
     animation: slideIn 0.3s ease;
+    font-size: 16px;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 @keyframes slideIn {
@@ -204,14 +250,20 @@ body {
     gap: 10px;
     justify-content: center;
     color: var(--gray);
+    font-size: 16px;
+    padding: 15px;
+    background: var(--light);
+    border-radius: var(--radius-sm);
 }
 
 .hint code {
     background: var(--light);
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 6px 12px;
+    border-radius: 6px;
     font-family: monospace;
     color: var(--primary);
+    font-size: 16px;
+    border: 2px solid var(--border);
 }
 
 .login-features {
@@ -254,9 +306,10 @@ body {
 
 /* ===== ОСНОВНОЙ ИНТЕРФЕЙС ===== */
 #cloud-screen {
-    display: flex;
+    display: none;
     flex-direction: column;
     min-height: 100vh;
+    width: 100%;
 }
 
 .main-header {
@@ -266,6 +319,7 @@ body {
     position: sticky;
     top: 0;
     z-index: 100;
+    width: 100%;
 }
 
 .header-content {
@@ -273,6 +327,7 @@ body {
     justify-content: space-between;
     align-items: center;
     height: 80px;
+    max-width: 100%;
 }
 
 .brand {
@@ -345,6 +400,8 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+    min-height: 44px;
+    white-space: nowrap;
 }
 
 .btn-logout:hover {
@@ -360,12 +417,17 @@ body {
     gap: 30px;
     padding: 30px;
     background: var(--light);
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
 }
 
 .content-left, .content-right {
     display: flex;
     flex-direction: column;
     gap: 30px;
+    width: 100%;
+    min-width: 0;
 }
 
 .card {
@@ -373,6 +435,7 @@ body {
     border-radius: var(--radius);
     box-shadow: var(--shadow);
     overflow: hidden;
+    width: 100%;
 }
 
 .card-header {
@@ -381,6 +444,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    width: 100%;
 }
 
 .card-header h2 {
@@ -390,6 +454,9 @@ body {
     font-size: 20px;
     color: var(--dark);
     margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .header-actions {
@@ -399,8 +466,8 @@ body {
 }
 
 .btn-icon {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     border: none;
     background: var(--light);
@@ -410,6 +477,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .btn-icon:hover {
@@ -420,6 +488,8 @@ body {
 .search-box {
     position: relative;
     width: 200px;
+    flex-shrink: 1;
+    min-width: 150px;
 }
 
 .search-box i {
@@ -428,6 +498,7 @@ body {
     top: 50%;
     transform: translateY(-50%);
     color: var(--gray);
+    font-size: 16px;
 }
 
 .search-box input {
@@ -437,6 +508,9 @@ body {
     border-radius: var(--radius-sm);
     font-size: 14px;
     transition: var(--transition);
+    height: 44px;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .search-box input:focus {
@@ -446,6 +520,7 @@ body {
 
 .card-body {
     padding: 30px;
+    width: 100%;
 }
 
 /* ===== ОБЛАСТЬ ЗАГРУЗКИ ===== */
@@ -458,6 +533,8 @@ body {
     transition: var(--transition);
     position: relative;
     background: var(--light);
+    width: 100%;
+    touch-action: manipulation;
 }
 
 .upload-area:hover {
@@ -473,6 +550,7 @@ body {
     height: 100%;
     opacity: 0;
     cursor: pointer;
+    z-index: 2;
 }
 
 .upload-icon {
@@ -490,17 +568,20 @@ body {
 .upload-area p {
     color: var(--gray);
     margin-bottom: 5px;
+    font-size: 16px;
 }
 
 .upload-area small {
     color: var(--gray);
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .selected-files {
     margin: 25px 0;
     max-height: 200px;
     overflow-y: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
 }
 
 .file-preview {
@@ -512,6 +593,7 @@ body {
     border-radius: var(--radius-sm);
     margin-bottom: 10px;
     animation: slideIn 0.3s ease;
+    width: 100%;
 }
 
 .file-preview:last-child {
@@ -521,19 +603,26 @@ body {
 .file-preview-icon {
     font-size: 24px;
     color: var(--primary);
+    flex-shrink: 0;
 }
 
 .file-preview-info {
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .file-preview-name {
     font-weight: 600;
     margin-bottom: 4px;
+    font-size: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .file-preview-size {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--gray);
 }
 
@@ -542,8 +631,14 @@ body {
     border: none;
     color: var(--danger);
     cursor: pointer;
-    font-size: 18px;
-    padding: 5px;
+    font-size: 20px;
+    padding: 10px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 .upload-controls {
@@ -551,6 +646,8 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-top: 25px;
+    width: 100%;
+    gap: 15px;
 }
 
 .btn-upload {
@@ -566,6 +663,9 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
+    min-height: 50px;
+    flex: 1;
+    justify-content: center;
 }
 
 .btn-upload:hover:not(:disabled) {
@@ -579,25 +679,33 @@ body {
     opacity: 0.6;
 }
 
+.btn-upload:active:not(:disabled) {
+    transform: translateY(0);
+}
+
 .upload-stats {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     gap: 5px;
+    flex-shrink: 0;
 }
 
 .upload-stats span {
     font-size: 14px;
     color: var(--gray);
+    white-space: nowrap;
 }
 
 .upload-progress {
     margin-top: 25px;
+    width: 100%;
 }
 
 .progress-item {
     margin-bottom: 15px;
     animation: slideIn 0.3s ease;
+    width: 100%;
 }
 
 .progress-item:last-child {
@@ -609,16 +717,24 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 8px;
+    width: 100%;
 }
 
 .progress-filename {
     font-weight: 600;
     font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    margin-right: 10px;
 }
 
 .progress-percent {
     font-weight: 600;
     color: var(--primary);
+    flex-shrink: 0;
+    font-size: 14px;
 }
 
 .progress-bar {
@@ -626,6 +742,7 @@ body {
     background: var(--light);
     border-radius: 4px;
     overflow: hidden;
+    width: 100%;
 }
 
 .progress-fill {
@@ -641,6 +758,7 @@ body {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 20px;
+    width: 100%;
 }
 
 .stat-item {
@@ -651,6 +769,7 @@ body {
     background: var(--light);
     border-radius: var(--radius-sm);
     transition: var(--transition);
+    width: 100%;
 }
 
 .stat-item:hover {
@@ -669,17 +788,20 @@ body {
     justify-content: center;
     color: white;
     font-size: 24px;
+    flex-shrink: 0;
 }
 
 .stat-info {
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .stat-value {
     font-size: 24px;
     font-weight: 800;
     color: var(--dark);
+    line-height: 1;
 }
 
 .stat-label {
@@ -687,11 +809,13 @@ body {
     color: var(--gray);
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    margin-top: 4px;
 }
 
 /* ===== СПИСОК ФАЙЛОВ ===== */
 .files-controls {
     margin-bottom: 20px;
+    width: 100%;
 }
 
 .sort-options select {
@@ -704,6 +828,9 @@ body {
     font-size: 14px;
     cursor: pointer;
     transition: var(--transition);
+    height: 44px;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .sort-options select:focus {
@@ -714,11 +841,13 @@ body {
 .files-container {
     position: relative;
     min-height: 400px;
+    width: 100%;
 }
 
 #files-list {
     display: grid;
     gap: 15px;
+    width: 100%;
 }
 
 .file-item {
@@ -730,6 +859,8 @@ body {
     border-radius: var(--radius-sm);
     transition: var(--transition);
     animation: slideIn 0.3s ease;
+    width: 100%;
+    touch-action: manipulation;
 }
 
 .file-item:hover {
@@ -743,23 +874,33 @@ body {
     color: var(--primary);
     width: 40px;
     text-align: center;
+    flex-shrink: 0;
 }
 
 .file-info {
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .file-name {
     font-weight: 600;
     margin-bottom: 5px;
-    word-break: break-all;
+    word-break: break-word;
+    font-size: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
 
 .file-meta {
     display: flex;
     gap: 15px;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--gray);
+    flex-wrap: wrap;
 }
 
 .file-actions {
@@ -767,6 +908,7 @@ body {
     gap: 10px;
     opacity: 0;
     transition: var(--transition);
+    flex-shrink: 0;
 }
 
 .file-item:hover .file-actions {
@@ -774,8 +916,8 @@ body {
 }
 
 .btn-action {
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     border: none;
     background: white;
@@ -787,6 +929,7 @@ body {
     justify-content: center;
     font-size: 16px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    flex-shrink: 0;
 }
 
 .btn-action:hover {
@@ -807,6 +950,7 @@ body {
     text-align: center;
     padding: 80px 20px;
     color: var(--gray);
+    width: 100%;
 }
 
 .empty-icon {
@@ -833,11 +977,20 @@ body {
     align-items: center;
     justify-content: center;
     gap: 20px;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
 }
 
 .spinner {
     font-size: 48px;
     color: var(--primary);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 .loading-state p {
@@ -850,17 +1003,22 @@ body {
     background: var(--dark);
     color: white;
     padding: 25px 40px;
+    width: 100%;
 }
 
 .footer-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    max-width: 100%;
+    flex-wrap: wrap;
+    gap: 15px;
 }
 
 .footer-links {
     display: flex;
     gap: 30px;
+    flex-wrap: wrap;
 }
 
 .footer-links span {
@@ -884,6 +1042,8 @@ body {
     align-items: center;
     justify-content: center;
     padding: 20px;
+    width: 100vw;
+    height: 100vh;
 }
 
 .modal-content {
@@ -907,11 +1067,13 @@ body {
     align-items: center;
     padding: 25px 30px;
     border-bottom: 1px solid var(--border);
+    width: 100%;
 }
 
 .modal-header h3 {
     margin: 0;
     color: var(--dark);
+    font-size: 20px;
 }
 
 .modal-close {
@@ -922,17 +1084,20 @@ body {
     color: var(--gray);
     line-height: 1;
     padding: 0;
-    width: 30px;
-    height: 30px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .modal-body {
     padding: 30px;
     max-height: 60vh;
     overflow-y: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
 }
 
 .modal-footer {
@@ -941,75 +1106,831 @@ body {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
+    width: 100%;
+    flex-wrap: wrap;
 }
 
-/* ===== АДАПТИВНОСТЬ ===== */
-@media (max-width: 1200px) {
-    .login-wrapper {
-        grid-template-columns: 1fr;
-        max-width: 600px;
+/* ===== МОБИЛЬНАЯ АДАПТАЦИЯ ===== */
+@media (max-width: 768px) {
+    /* Логин экран */
+    #login-screen {
+        padding: 0;
+        align-items: stretch;
     }
     
-    .login-features {
-        display: none;
-    }
-}
-
-@media (max-width: 1024px) {
-    .main-content {
+    .login-wrapper {
         grid-template-columns: 1fr;
+        gap: 0;
+        max-width: 100%;
+        height: 100vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
-}
-
-@media (max-width: 768px) {
+    
+    .login-card {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        padding: 30px 20px;
+        border-radius: 0;
+        box-shadow: none;
+        background: white;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        height: auto;
+    }
+    
+    .logo {
+        margin-bottom: 40px;
+    }
+    
+    .logo-icon {
+        font-size: 56px;
+        margin-bottom: 10px;
+    }
+    
+    .logo h1 {
+        font-size: 32px;
+        margin-bottom: 5px;
+    }
+    
+    .tagline {
+        font-size: 16px;
+    }
+    
+    .form-group label {
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
+    
+    .password-wrapper input {
+        font-size: 18px !important;
+        padding: 18px 50px 18px 20px;
+        height: 60px;
+    }
+    
+    .show-password {
+        right: 20px;
+        font-size: 22px;
+        padding: 10px;
+        width: 44px;
+        height: 44px;
+    }
+    
+    #login-btn {
+        height: 60px;
+        font-size: 18px;
+        margin: 20px 0;
+    }
+    
+    .hint {
+        font-size: 16px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 12px;
+        margin-top: 20px;
+    }
+    
+    .hint code {
+        font-size: 16px;
+        padding: 6px 12px;
+    }
+    
+    /* Основной интерфейс на мобилках */
+    #cloud-screen {
+        display: none;
+        flex-direction: column;
+        min-height: 100vh;
+        overflow-x: hidden;
+        width: 100vw;
+    }
+    
     .main-header {
-        padding: 0 20px;
+        padding: 15px;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        width: 100%;
     }
     
     .header-content {
-        flex-direction: column;
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
         height: auto;
-        padding: 15px 0;
-        gap: 15px;
+        padding: 0;
+        width: 100%;
     }
     
-    .main-content {
-        padding: 20px;
+    .brand {
+        flex-direction: row;
+        text-align: left;
+        gap: 10px;
+        flex: 1;
+        min-width: 0;
     }
     
-    .card-header {
-        flex-direction: column;
-        gap: 15px;
-        align-items: flex-start;
+    .brand-logo {
+        font-size: 24px;
+    }
+    
+    .brand-text {
+        min-width: 0;
+        overflow: hidden;
+    }
+    
+    .brand-text h1 {
+        font-size: 18px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    #storage-info {
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     
     .header-actions {
+        flex-direction: row;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+    
+    .user-info {
+        display: none;
+    }
+    
+    .btn-logout {
+        padding: 8px 12px;
+        height: 44px;
+        font-size: 14px;
+        min-width: auto;
+    }
+    
+    .btn-logout span {
+        display: none;
+    }
+    
+    .main-content {
+        grid-template-columns: 1fr;
+        padding: 15px;
+        gap: 15px;
         width: 100%;
-        justify-content: space-between;
+        overflow-x: hidden;
+    }
+    
+    .content-left, .content-right {
+        gap: 15px;
+        width: 100%;
+        display: none;
+    }
+    
+    .content-left.active, .content-right.active {
+        display: flex;
+    }
+    
+    .card {
+        border-radius: 20px;
+        width: 100%;
+    }
+    
+    .card-header {
+        padding: 20px;
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+    }
+    
+    .card-header h2 {
+        font-size: 18px;
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .header-actions {
+        width: auto;
+        flex-direction: row;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+    
+    .search-box {
+        flex: 1;
+        min-width: 0;
+        width: 100%;
+    }
+    
+    .search-box input {
+        font-size: 16px !important;
+        height: 44px;
+    }
+    
+    .card-body {
+        padding: 20px;
+        width: 100%;
+    }
+    
+    /* Область загрузки */
+    .upload-area {
+        padding: 30px 20px;
+        margin: 0;
+        width: 100%;
+    }
+    
+    .upload-icon {
+        font-size: 48px;
+        margin-bottom: 20px;
+    }
+    
+    .upload-area h3 {
+        font-size: 18px;
+    }
+    
+    .upload-area p {
+        font-size: 14px;
+    }
+    
+    .upload-area small {
+        font-size: 12px;
+    }
+    
+    .selected-files {
+        max-height: 300px;
+        margin: 15px 0;
+        width: 100%;
+    }
+    
+    .file-preview {
+        padding: 12px;
+        flex-direction: row;
+        text-align: left;
+        gap: 12px;
+        width: 100%;
+    }
+    
+    .file-preview-icon {
+        font-size: 24px;
     }
     
     .upload-controls {
         flex-direction: column;
         gap: 15px;
-        align-items: stretch;
+        margin-top: 20px;
+        width: 100%;
+    }
+    
+    .btn-upload {
+        width: 100%;
+        height: 56px;
+        font-size: 16px;
+        margin: 0;
     }
     
     .upload-stats {
         align-items: center;
+        flex-direction: row;
+        justify-content: space-between;
+        width: 100%;
+        gap: 10px;
     }
     
-    .stats-grid {
-        grid-template-columns: 1fr;
+    /* Список файлов */
+    .files-controls {
+        margin-bottom: 15px;
+        width: 100%;
+    }
+    
+    .sort-options select {
+        width: 100%;
+        height: 50px;
+        font-size: 16px;
+    }
+    
+    .files-container {
+        min-height: 300px;
+        width: 100%;
+    }
+    
+    .file-item {
+        flex-direction: row;
+        text-align: left;
+        padding: 15px;
+        gap: 12px;
+        width: 100%;
+    }
+    
+    .file-icon {
+        font-size: 28px;
+        width: 36px;
+    }
+    
+    .file-info {
+        width: auto;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .file-name {
+        font-size: 16px;
+        margin-bottom: 4px;
+    }
+    
+    .file-meta {
+        justify-content: flex-start;
+        font-size: 12px;
+        gap: 10px;
+    }
+    
+    .file-actions {
+        opacity: 1;
+        margin-top: 0;
+        gap: 8px;
+    }
+    
+    .btn-action {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+    
+    /* Футер */
+    .main-footer {
+        padding: 20px 15px;
+        text-align: center;
+        width: 100%;
     }
     
     .footer-content {
         flex-direction: column;
-        gap: 15px;
-        text-align: center;
+        gap: 10px;
     }
     
     .footer-links {
         flex-direction: column;
+        gap: 8px;
+    }
+    
+    /* Модальное окно */
+    .modal {
+        padding: 15px;
+        width: 100vw;
+        height: 100vh;
+    }
+    
+    .modal-content {
+        width: calc(100% - 30px);
+        max-height: 90vh;
+    }
+    
+    .modal-header, .modal-body, .modal-footer {
+        padding: 20px;
+    }
+    
+    .modal-footer {
+        flex-direction: column;
         gap: 10px;
     }
+    
+    .modal-footer .btn {
+        width: 100%;
+        height: 50px;
+    }
+    
+    /* Тосты */
+    .toast {
+        min-width: calc(100% - 30px);
+        max-width: calc(100% - 30px);
+        right: 15px;
+        left: 15px;
+        top: 15px;
+        font-size: 14px;
+    }
+    
+    /* Анимация входа для мобилок */
+    @keyframes mobileSlideUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .login-card {
+        animation: mobileSlideUp 0.4s ease-out;
+    }
+    
+    /* Фикс высоты на мобилках */
+    html, body {
+        height: 100%;
+        width: 100%;
+        overflow-x: hidden;
+        position: fixed;
+    }
+    
+    /* Улучшение скролла на мобилках */
+    .selected-files, .files-container, .modal-body {
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    
+    .selected-files::-webkit-scrollbar,
+    .files-container::-webkit-scrollbar,
+    .modal-body::-webkit-scrollbar {
+        display: none;
+    }
+    
+    /* Фикс для Safari iOS */
+    @supports (-webkit-touch-callout: none) {
+        #login-screen,
+        #cloud-screen {
+            height: -webkit-fill-available;
+            min-height: -webkit-fill-available;
+        }
+        
+        .login-card {
+            min-height: -webkit-fill-available;
+        }
+    }
+    
+    /* Плавные анимации */
+    .btn-action,
+    .btn-upload,
+    .btn-logout,
+    .btn-primary {
+        transition: all 0.2s ease;
+    }
+    
+    /* Улучшение отзывчивости */
+    .file-item:active {
+        transform: scale(0.98);
+        background: var(--light);
+    }
+}
+
+/* ===== ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ ===== */
+@media (max-width: 360px) {
+    .login-card {
+        padding: 25px 15px;
+    }
+    
+    .logo-icon {
+        font-size: 48px;
+    }
+    
+    .logo h1 {
+        font-size: 28px;
+    }
+    
+    .password-wrapper input {
+        height: 56px;
+        font-size: 16px !important;
+    }
+    
+    #login-btn {
+        height: 56px;
+        font-size: 16px;
+    }
+    
+    .card-body {
+        padding: 15px;
+    }
+    
+    .upload-area {
+        padding: 25px 15px;
+    }
+    
+    .file-item {
+        padding: 12px;
+    }
+    
+    .brand-text h1 {
+        font-size: 16px;
+    }
+}
+
+/* ===== АЛЬБОМНЫЙ РЕЖИМ ===== */
+@media (max-height: 600px) and (orientation: landscape) {
+    #login-screen {
+        padding: 10px;
+        align-items: flex-start;
+        overflow-y: auto;
+    }
+    
+    .login-card {
+        min-height: auto;
+        padding: 20px;
+        margin: 10px 0;
+        justify-content: flex-start;
+    }
+    
+    .logo {
+        margin-bottom: 20px;
+    }
+    
+    .logo-icon {
+        font-size: 32px;
+    }
+    
+    .logo h1 {
+        font-size: 24px;
+    }
+    
+    .password-wrapper input {
+        height: 50px;
+        font-size: 16px !important;
+    }
+    
+    #login-btn {
+        height: 50px;
+        font-size: 16px;
+        margin: 10px 0;
+    }
+    
+    .main-content {
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        padding: 10px;
+    }
+    
+    .card-header h2 {
+        font-size: 16px;
+    }
+    
+    .upload-area h3 {
+        font-size: 16px;
+    }
+    
+    .file-name {
+        font-size: 14px;
+    }
+}
+
+/* ===== АНИМАЦИИ И ПЕРЕХОДЫ ===== */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInLeft {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease;
+}
+
+.slide-in-right {
+    animation: slideInRight 0.3s ease;
+}
+
+.slide-in-left {
+    animation: slideInLeft 0.3s ease;
+}
+
+/* ===== УТИЛИТЫ ===== */
+.hidden {
+    display: none !important;
+}
+
+.visible {
+    display: block !important;
+}
+
+.flex {
+    display: flex !important;
+}
+
+.flex-col {
+    flex-direction: column !important;
+}
+
+.items-center {
+    align-items: center !important;
+}
+
+.justify-center {
+    justify-content: center !important;
+}
+
+.w-full {
+    width: 100% !important;
+}
+
+.h-full {
+    height: 100% !important;
+}
+
+.m-0 {
+    margin: 0 !important;
+}
+
+.p-0 {
+    padding: 0 !important;
+}
+
+.text-center {
+    text-align: center !important;
+}
+
+.text-left {
+    text-align: left !important;
+}
+
+.text-right {
+    text-align: right !important;
+}
+
+.overflow-hidden {
+    overflow: hidden !important;
+}
+
+.overflow-auto {
+    overflow: auto !important;
+}
+
+.pointer-events-none {
+    pointer-events: none !important;
+}
+
+.pointer-events-auto {
+    pointer-events: auto !important;
+}
+
+.select-none {
+    user-select: none !important;
+}
+
+.select-text {
+    user-select: text !important;
+}
+
+.transition-all {
+    transition: all 0.3s ease !important;
+}
+
+/* ===== TOAST STYLES ===== */
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 10000;
+    transform: translateX(150%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 300px;
+    max-width: 400px;
+    border-left: 4px solid;
+    font-size: 14px;
+}
+
+.toast.show {
+    transform: translateX(0);
+}
+
+.toast-success {
+    border-left-color: #4cc9f0;
+}
+
+.toast-error {
+    border-left-color: #ef233c;
+}
+
+.toast-info {
+    border-left-color: #4361ee;
+}
+
+.toast-warning {
+    border-left-color: #f9c74f;
+}
+
+.toast-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.toast-success .toast-icon {
+    color: #4cc9f0;
+}
+
+.toast-error .toast-icon {
+    color: #ef233c;
+}
+
+.toast-info .toast-icon {
+    color: #4361ee;
+}
+
+.toast-warning .toast-icon {
+    color: #f9c74f;
+}
+
+.toast-message {
+    flex: 1;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #8d99ae;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Button styles for modal */
+.btn {
+    padding: 12px 24px;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 16px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-secondary {
+    background: var(--light);
+    color: var(--dark);
+    border: 2px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: #e9ecef;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #d90429;
+}
+
+.btn-success {
+    background: var(--success);
+    color: white;
+}
+
+.btn-success:hover {
+    background: #3aa8d0;
+}
+
+.btn-primary-small {
+    background: var(--primary);
+    color: white;
+    padding: 10px 20px;
+    font-size: 14px;
+}
+
+.btn-primary-small:hover {
+    background: var(--primary-dark);
 }
