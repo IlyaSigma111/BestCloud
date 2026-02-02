@@ -43,7 +43,6 @@ try {
 let nccFiles = [];
 let selectedFiles = [];
 let isUploading = false;
-let uploadQueue = [];
 
 // ====================
 // ИНИЦИАЛИЗАЦИЯ NCC
@@ -248,42 +247,24 @@ function initializeNavigation() {
 }
 
 // ====================
-// ЗАГРУЗКА ФАЙЛОВ
+// ЗАГРУЗКА ФАЙЛОВ - ИСПРАВЛЕННАЯ ВЕРСИЯ
 // ====================
 function initializeFileUpload() {
-    const dropZones = ['#quick-drop', '#main-dropzone'];
+    // Быстрая загрузка (dashboard)
+    const quickDrop = document.getElementById('quick-drop');
+    const quickInput = document.getElementById('quick-input');
     
-    dropZones.forEach(selector => {
-        const dropzone = document.querySelector(selector);
-        if (!dropzone) return;
-        
-        const fileInput = dropzone.querySelector('input[type="file"]');
-        
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
-            dropzone.addEventListener(event, preventDefaults, false);
-        });
-        
-        ['dragenter', 'dragover'].forEach(event => {
-            dropzone.addEventListener(event, () => {
-                dropzone.style.borderColor = 'var(--ncc-primary)';
-                dropzone.style.background = 'rgba(0, 180, 216, 0.1)';
-            }, false);
-        });
-        
-        ['dragleave', 'drop'].forEach(event => {
-            dropzone.addEventListener(event, () => {
-                dropzone.style.borderColor = 'var(--border-color)';
-                dropzone.style.background = '';
-            }, false);
-        });
-        
-        dropzone.addEventListener('drop', handleDrop, false);
-        dropzone.addEventListener('click', () => fileInput.click());
-        
-        if (fileInput) {
-            fileInput.addEventListener('change', handleFileSelect);
-        }
-    });
+    if (quickDrop && quickInput) {
+        setupDropzone(quickDrop, quickInput);
+    }
+    
+    // Основная загрузка
+    const mainDrop = document.getElementById('main-dropzone');
+    const mainInput = document.getElementById('main-file-input');
+    
+    if (mainDrop && mainInput) {
+        setupDropzone(mainDrop, mainInput);
+    }
     
     // Кнопки управления
     const startUploadBtn = document.getElementById('start-upload');
@@ -303,6 +284,43 @@ function initializeFileUpload() {
     }
 }
 
+function setupDropzone(dropzone, fileInput) {
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
+        dropzone.addEventListener(event, preventDefaults, false);
+    });
+    
+    ['dragenter', 'dragover'].forEach(event => {
+        dropzone.addEventListener(event, () => {
+            dropzone.style.borderColor = 'var(--ncc-primary)';
+            dropzone.style.background = 'rgba(0, 180, 216, 0.1)';
+        }, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(event => {
+        dropzone.addEventListener(event, () => {
+            dropzone.style.borderColor = 'var(--border-color)';
+            dropzone.style.background = '';
+        }, false);
+    });
+    
+    dropzone.addEventListener('drop', handleDrop, false);
+    
+    // КЛИК ПО ЗОНЕ: открываем окно выбора файлов
+    dropzone.addEventListener('click', function(e) {
+        if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+            fileInput.click();
+        }
+    });
+    
+    // ИЗМЕНЕНИЕ INPUT: обрабатываем выбранные файлы
+    fileInput.addEventListener('change', function(e) {
+        if (this.files && this.files.length > 0) {
+            handleFiles(this.files);
+            // НЕ сбрасываем value - позволяем добавлять файлы при повторном клике
+        }
+    });
+}
+
 function preventDefaults(e) {
     e.preventDefault();
     e.stopPropagation();
@@ -311,11 +329,9 @@ function preventDefaults(e) {
 function handleDrop(e) {
     const dt = e.dataTransfer;
     const files = dt.files;
-    handleFiles(files);
-}
-
-function handleFileSelect(e) {
-    handleFiles(e.target.files);
+    if (files && files.length > 0) {
+        handleFiles(files);
+    }
 }
 
 function handleFiles(files) {
@@ -327,20 +343,40 @@ function handleFiles(files) {
         return;
     }
     
-    // Проверка размера
+    // Проверка размера и добавление без дубликатов
+    let addedCount = 0;
+    let skippedCount = 0;
+    
     Array.from(files).forEach(file => {
+        // Проверка размера
         if (file.size > NCC_CONFIG.MAX_SIZE) {
             showToast(`Файл ${file.name} превышает 500MB`, 'warning');
+            skippedCount++;
             return;
         }
         
-        // Добавляем в очередь
-        if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+        // Проверяем, нет ли уже такого файла (по имени, размеру и дате изменения)
+        const isDuplicate = selectedFiles.some(existingFile => 
+            existingFile.name === file.name && 
+            existingFile.size === file.size &&
+            existingFile.lastModified === file.lastModified
+        );
+        
+        if (!isDuplicate) {
             selectedFiles.push(file);
+            addedCount++;
+        } else {
+            skippedCount++;
         }
     });
     
+    // Обновляем UI
     updateSelectedFilesUI();
+    
+    // Показываем сообщение о результате
+    if (addedCount > 0) {
+        showToast(`Добавлено ${addedCount} файлов${skippedCount > 0 ? `, ${skippedCount} пропущено` : ''}`, 'success');
+    }
 }
 
 function updateSelectedFilesUI() {
@@ -359,24 +395,33 @@ function updateSelectedFilesUI() {
     if (sizeSpan) sizeSpan.textContent = formatFileSize(totalSize);
     
     // Обновляем список
-    selectedList.innerHTML = selectedFiles.map((file, index) => `
-        <div class="file-item">
-            <div class="file-icon">
-                ${getFileIcon(file.name)}
+    if (selectedFiles.length === 0) {
+        selectedList.innerHTML = `
+            <div class="empty-mini">
+                <i class="fas fa-folder-open"></i>
+                <span>Файлы не выбраны</span>
             </div>
-            <div class="file-details">
-                <div class="file-name" title="${file.name}">${file.name}</div>
-                <div class="file-info">
-                    <span>${formatFileSize(file.size)}</span>
-                    <span>•</span>
-                    <span>${file.type || 'Неизвестный тип'}</span>
+        `;
+    } else {
+        selectedList.innerHTML = selectedFiles.map((file, index) => `
+            <div class="file-item">
+                <div class="file-icon">
+                    ${getFileIcon(file.name)}
                 </div>
+                <div class="file-details">
+                    <div class="file-name" title="${file.name}">${file.name}</div>
+                    <div class="file-info">
+                        <span>${formatFileSize(file.size)}</span>
+                        <span>•</span>
+                        <span>${file.type || 'Неизвестный тип'}</span>
+                    </div>
+                </div>
+                <button class="file-remove" onclick="removeSelectedFile(${index})" title="Удалить из списка">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-            <button class="file-remove" onclick="removeSelectedFile(${index})" title="Удалить">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-    `).join('');
+        `).join('');
+    }
     
     // Обновляем кнопки
     const isEnabled = selectedFiles.length > 0 && !isUploading;
@@ -396,17 +441,20 @@ function updateSelectedFilesUI() {
 }
 
 function removeSelectedFile(index) {
-    selectedFiles.splice(index, 1);
-    updateSelectedFilesUI();
-    showToast('Файл удален из списка', 'info');
+    if (index >= 0 && index < selectedFiles.length) {
+        const removedFile = selectedFiles.splice(index, 1)[0];
+        updateSelectedFilesUI();
+        showToast(`Файл "${removedFile.name}" удален из списка`, 'info');
+    }
 }
 
 function clearSelectedFiles() {
     if (selectedFiles.length === 0) return;
     
+    const count = selectedFiles.length;
     selectedFiles = [];
     updateSelectedFilesUI();
-    showToast('Список файлов очищен', 'info');
+    showToast(`Список файлов очищен (${count} файлов удалено)`, 'info');
 }
 
 // ====================
@@ -1111,4 +1159,3 @@ window.deleteNCCFile = deleteNCCFile;
 window.loadNCCFiles = loadNCCFiles;
 
 console.log("🚀 NCC (NeoCascadeCloud) готов к работе!");
-
