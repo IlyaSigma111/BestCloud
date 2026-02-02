@@ -2,6 +2,7 @@
 // КОНФИГУРАЦИЯ FIREBASE
 // ====================
 const firebaseConfig = {
+    // ⚠️ ВНИМАНИЕ: Это демо-ключи. В продакшене используйте переменные окружения!
     apiKey: "AIzaSyC9OSllGc8U-au0281HfikJkI5caDkqOYc",
     authDomain: "goydacloud.firebaseapp.com",
     projectId: "goydacloud",
@@ -10,12 +11,15 @@ const firebaseConfig = {
     appId: "1:937429390580:web:7be76b6755a07ff6ae7aa1"
 };
 
-// Инициализация Firebase
-try {
-    firebase.initializeApp(firebaseConfig);
-    console.log("Firebase успешно инициализирован");
-} catch (error) {
-    console.error("Ошибка инициализации Firebase:", error);
+// Инициализация Firebase с проверкой
+if (!firebase.apps.length) {
+    try {
+        firebase.initializeApp(firebaseConfig);
+        console.log("✅ Firebase успешно инициализирован");
+    } catch (error) {
+        console.error("❌ Ошибка инициализации Firebase:", error);
+        showToast('Ошибка подключения к облаку', 'error');
+    }
 }
 
 const storage = firebase.storage();
@@ -34,33 +38,63 @@ let selectedFiles = [];
 function checkPassword() {
     const input = document.getElementById('password-input').value;
     const errorElement = document.getElementById('error-message');
+    const loginBtn = document.getElementById('login-btn');
+    
+    if (!input) {
+        errorElement.textContent = "⚠️ Введите пароль";
+        errorElement.style.color = "#f9c74f";
+        return;
+    }
     
     if (input === CORRECT_PASSWORD) {
+        // Анимация успеха
         errorElement.textContent = "✅ Успешный вход! Перенаправляем...";
         errorElement.style.color = "#4cc9f0";
         
-        // Добавляем анимацию успеха
-        document.querySelector('.btn-primary').innerHTML = '<i class="fas fa-check"></i> Успешно!';
-        document.querySelector('.btn-primary').style.background = 'linear-gradient(135deg, #4cc9f0, #4361ee)';
+        loginBtn.innerHTML = '<i class="fas fa-check"></i> Успешно!';
+        loginBtn.style.background = 'linear-gradient(135deg, #4cc9f0, #4361ee)';
+        loginBtn.disabled = true;
         
+        // Плавный переход
         setTimeout(() => {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('cloud-screen').style.display = 'flex';
-            loadFiles();
+            document.getElementById('login-screen').style.opacity = '0';
+            document.getElementById('login-screen').style.transform = 'translateY(-20px)';
+            
+            setTimeout(() => {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('cloud-screen').style.display = 'flex';
+                document.getElementById('cloud-screen').style.opacity = '0';
+                document.getElementById('cloud-screen').style.transform = 'translateY(20px)';
+                
+                // Анимация появления облачного интерфейса
+                setTimeout(() => {
+                    document.getElementById('cloud-screen').style.opacity = '1';
+                    document.getElementById('cloud-screen').style.transform = 'translateY(0)';
+                    document.getElementById('cloud-screen').style.transition = 'all 0.5s ease';
+                    loadFiles();
+                }, 50);
+            }, 300);
         }, 800);
     } else {
+        // Анимация ошибки
         errorElement.textContent = "❌ Неверный пароль! Попробуйте снова";
         errorElement.style.color = "#ef233c";
         
-        // Анимация ошибки
-        document.getElementById('password-input').style.borderColor = '#ef233c';
-        document.getElementById('password-input').style.animation = 'shake 0.5s';
+        const passwordInput = document.getElementById('password-input');
+        passwordInput.style.borderColor = '#ef233c';
+        passwordInput.style.animation = 'shake 0.5s';
+        
+        loginBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Ошибка!';
+        loginBtn.style.background = 'linear-gradient(135deg, #ef233c, #f9c74f)';
         
         setTimeout(() => {
-            document.getElementById('password-input').style.animation = '';
-            document.getElementById('password-input').value = '';
-            document.getElementById('password-input').focus();
-        }, 500);
+            passwordInput.style.animation = '';
+            passwordInput.value = '';
+            passwordInput.focus();
+            
+            loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти в облако';
+            loginBtn.style.background = 'linear-gradient(135deg, #4361ee, #7209b7)';
+        }, 1000);
     }
 }
 
@@ -72,20 +106,42 @@ document.querySelector('.show-password').addEventListener('click', function() {
     if (input.type === 'password') {
         input.type = 'text';
         icon.className = 'fas fa-eye-slash';
+        this.setAttribute('aria-label', 'Скрыть пароль');
     } else {
         input.type = 'password';
         icon.className = 'fas fa-eye';
+        this.setAttribute('aria-label', 'Показать пароль');
     }
 });
 
 // Вход по Enter
 document.getElementById('password-input').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') checkPassword();
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        checkPassword();
+    }
+});
+
+// 🔥 ИСПРАВЛЕНИЕ ГЛАВНОЙ ПРОБЛЕМЫ: Привязка кнопки входа
+document.addEventListener('DOMContentLoaded', function() {
+    const loginBtn = document.getElementById('login-btn');
+    if (loginBtn) {
+        loginBtn.addEventListener('click', checkPassword);
+        console.log("✅ Кнопка входа привязана");
+    } else {
+        console.error("❌ Кнопка входа не найдена!");
+    }
+    
+    // Автофокус на поле пароля
+    const passwordInput = document.getElementById('password-input');
+    if (passwordInput) {
+        setTimeout(() => passwordInput.focus(), 100);
+    }
 });
 
 // Выход
 document.getElementById('logout-btn').addEventListener('click', function() {
-    showModal('Подтверждение', 'Вы уверены, что хотите выйти из GoydaCloud?', [
+    showModal('Подтверждение выхода', 'Вы уверены, что хотите выйти из GoydaCloud?', [
         {
             text: 'Отмена',
             class: 'btn-secondary',
@@ -96,12 +152,33 @@ document.getElementById('logout-btn').addEventListener('click', function() {
             class: 'btn-danger',
             action: () => {
                 hideModal();
-                document.getElementById('cloud-screen').style.display = 'none';
-                document.getElementById('login-screen').style.display = 'flex';
-                document.getElementById('password-input').value = '';
-                document.getElementById('error-message').textContent = '';
-                document.querySelector('.btn-primary').innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти в облако';
-                document.querySelector('.btn-primary').style.background = 'linear-gradient(135deg, #4361ee, #7209b7)';
+                // Плавная анимация выхода
+                document.getElementById('cloud-screen').style.opacity = '0';
+                document.getElementById('cloud-screen').style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    document.getElementById('cloud-screen').style.display = 'none';
+                    document.getElementById('login-screen').style.display = 'flex';
+                    document.getElementById('login-screen').style.opacity = '0';
+                    
+                    // Сброс формы
+                    const passwordInput = document.getElementById('password-input');
+                    const errorElement = document.getElementById('error-message');
+                    const loginBtn = document.getElementById('login-btn');
+                    
+                    passwordInput.value = '';
+                    errorElement.textContent = '';
+                    loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти в облако';
+                    loginBtn.style.background = 'linear-gradient(135deg, #4361ee, #7209b7)';
+                    
+                    // Плавное появление экрана входа
+                    setTimeout(() => {
+                        document.getElementById('login-screen').style.opacity = '1';
+                        document.getElementById('login-screen').style.transform = 'translateY(0)';
+                        document.getElementById('login-screen').style.transition = 'all 0.5s ease';
+                        passwordInput.focus();
+                    }, 50);
+                }, 300);
             }
         }
     ]);
@@ -160,7 +237,27 @@ function handleFileSelect(e) {
 }
 
 function handleFiles(files) {
-    selectedFiles = Array.from(files);
+    if (!files || files.length === 0) return;
+    
+    // Ограничение на количество файлов
+    if (files.length > 20) {
+        showToast('Максимально 20 файлов за раз', 'warning');
+        return;
+    }
+    
+    // Проверка размера файлов
+    const maxSize = 500 * 1024 * 1024; // 500MB
+    let validFiles = [];
+    
+    Array.from(files).forEach(file => {
+        if (file.size > maxSize) {
+            showToast(`Файл ${file.name} слишком большой (макс. 500MB)`, 'warning');
+        } else {
+            validFiles.push(file);
+        }
+    });
+    
+    selectedFiles = [...selectedFiles, ...validFiles];
     updateSelectedFilesUI();
 }
 
@@ -181,7 +278,7 @@ function updateSelectedFilesUI() {
     // Обновляем статистику
     const totalSizeBytes = selectedFiles.reduce((sum, file) => sum + file.size, 0);
     totalSize.textContent = formatFileSize(totalSizeBytes);
-    fileCount.textContent = `${selectedFiles.length} файл${selectedFiles.length === 1 ? '' : 'а'}`;
+    fileCount.textContent = `${selectedFiles.length} файл${getRussianPlural(selectedFiles.length)}`;
     
     // Обновляем список файлов
     container.innerHTML = selectedFiles.map((file, index) => `
@@ -190,10 +287,10 @@ function updateSelectedFilesUI() {
                 ${getFileIcon(file.name)}
             </div>
             <div class="file-preview-info">
-                <div class="file-preview-name">${file.name}</div>
+                <div class="file-preview-name" title="${file.name}">${file.name}</div>
                 <div class="file-preview-size">${formatFileSize(file.size)}</div>
             </div>
-            <button class="file-preview-remove" onclick="removeFile(${index})">
+            <button class="file-preview-remove" onclick="removeFile(${index})" aria-label="Удалить файл">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -205,11 +302,15 @@ function updateSelectedFilesUI() {
 function removeFile(index) {
     selectedFiles.splice(index, 1);
     updateSelectedFilesUI();
+    showToast('Файл удален из списка', 'info');
 }
 
 // Функция загрузки файлов
 async function uploadFile() {
-    if (selectedFiles.length === 0) return;
+    if (selectedFiles.length === 0) {
+        showToast('Выберите файлы для загрузки', 'warning');
+        return;
+    }
     
     const uploadBtn = document.getElementById('upload-btn');
     const progressContainer = document.getElementById('upload-progress');
@@ -221,13 +322,16 @@ async function uploadFile() {
     // Очищаем контейнер прогресса
     progressContainer.innerHTML = '';
     
+    // Показываем прогресс-бар
+    progressContainer.style.display = 'block';
+    
     // Создаем прогресс-бары для каждого файла
     const progressBars = selectedFiles.map((file, index) => {
         const progressDiv = document.createElement('div');
         progressDiv.className = 'progress-item';
         progressDiv.innerHTML = `
             <div class="progress-header">
-                <span class="progress-filename">${file.name}</span>
+                <span class="progress-filename" title="${file.name}">${file.name}</span>
                 <span class="progress-percent" id="percent-${index}">0%</span>
             </div>
             <div class="progress-bar">
@@ -239,62 +343,68 @@ async function uploadFile() {
         return {
             element: progressDiv,
             percentElement: document.getElementById(`percent-${index}`),
-            fillElement: document.getElementById(`progress-${index}`)
+            fillElement: document.getElementById(`progress-${index}`),
+            file: file
         };
     });
     
+    let uploadErrors = 0;
+    
     // Загружаем файлы по очереди
-    for (let i = 0; i < selectedFiles.length; i++) {
-        const file = selectedFiles[i];
-        const fileName = `${Date.now()}_${file.name}`;
+    for (let i = 0; i < progressBars.length; i++) {
+        const pb = progressBars[i];
+        const file = pb.file;
+        const fileName = `${Date.now()}_${i}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
         const fileRef = storageRef.child(fileName);
         
         try {
             // Начинаем загрузку
             const uploadTask = fileRef.put(file);
             
-            // Обработка прогресса
-            uploadTask.on('state_changed',
-                (snapshot) => {
-                    // Обновляем прогресс
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    const roundedProgress = Math.round(progress);
-                    
-                    progressBars[i].percentElement.textContent = `${roundedProgress}%`;
-                    progressBars[i].fillElement.style.width = `${progress}%`;
-                    
-                    // Анимация цвета
-                    if (progress < 50) {
-                        progressBars[i].fillElement.style.background = 'linear-gradient(90deg, #ef233c, #f9c74f)';
-                    } else if (progress < 100) {
-                        progressBars[i].fillElement.style.background = 'linear-gradient(90deg, #f9c74f, #4cc9f0)';
+            // Обещание для ожидания завершения
+            await new Promise((resolve, reject) => {
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        // Обновляем прогресс
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        const roundedProgress = Math.round(progress);
+                        
+                        pb.percentElement.textContent = `${roundedProgress}%`;
+                        pb.fillElement.style.width = `${progress}%`;
+                        
+                        // Анимация цвета
+                        if (progress < 50) {
+                            pb.fillElement.style.background = 'linear-gradient(90deg, #ef233c, #f9c74f)';
+                        } else if (progress < 100) {
+                            pb.fillElement.style.background = 'linear-gradient(90deg, #f9c74f, #4cc9f0)';
+                        }
+                    },
+                    (error) => {
+                        // Ошибка загрузки
+                        console.error('Ошибка загрузки:', error);
+                        pb.percentElement.textContent = '❌ Ошибка';
+                        pb.fillElement.style.background = '#ef233c';
+                        pb.fillElement.style.width = '100%';
+                        uploadErrors++;
+                        resolve(); // Разрешаем промис даже при ошибке
+                    },
+                    () => {
+                        // Успешная загрузка
+                        pb.percentElement.textContent = '✅ Готово';
+                        pb.fillElement.style.background = 'linear-gradient(90deg, #4cc9f0, #4361ee)';
+                        pb.fillElement.style.width = '100%';
+                        pb.element.style.animation = 'pulse 1s';
+                        resolve();
                     }
-                },
-                (error) => {
-                    // Ошибка загрузки
-                    console.error('Ошибка загрузки:', error);
-                    progressBars[i].percentElement.textContent = '❌ Ошибка';
-                    progressBars[i].fillElement.style.background = '#ef233c';
-                    progressBars[i].fillElement.style.width = '100%';
-                },
-                () => {
-                    // Успешная загрузка
-                    progressBars[i].percentElement.textContent = '✅ Готово';
-                    progressBars[i].fillElement.style.background = 'linear-gradient(90deg, #4cc9f0, #4361ee)';
-                    progressBars[i].fillElement.style.width = '100%';
-                    
-                    // Добавляем анимацию успеха
-                    progressBars[i].element.style.animation = 'pulse 1s';
-                }
-            );
-            
-            // Ждем завершения загрузки этого файла перед следующим
-            await uploadTask;
+                );
+            });
             
         } catch (error) {
             console.error(`Ошибка загрузки файла ${file.name}:`, error);
-            progressBars[i].percentElement.textContent = '❌ Ошибка';
-            progressBars[i].fillElement.style.background = '#ef233c';
+            pb.percentElement.textContent = '❌ Ошибка';
+            pb.fillElement.style.background = '#ef233c';
+            pb.fillElement.style.width = '100%';
+            uploadErrors++;
         }
     }
     
@@ -303,6 +413,12 @@ async function uploadFile() {
         uploadBtn.disabled = false;
         uploadBtn.innerHTML = '<i class="fas fa-rocket"></i> Начать загрузку';
         
+        // Скрываем прогресс-бар
+        setTimeout(() => {
+            progressContainer.style.display = 'none';
+            progressContainer.innerHTML = '';
+        }, 2000);
+        
         // Обновляем список файлов
         loadFiles();
         
@@ -310,8 +426,14 @@ async function uploadFile() {
         selectedFiles = [];
         updateSelectedFilesUI();
         
-        // Показываем уведомление об успехе
-        showToast('Все файлы успешно загружены!', 'success');
+        // Показываем уведомление об успехе/ошибках
+        if (uploadErrors === 0) {
+            showToast(`Все файлы успешно загружены!`, 'success');
+        } else if (uploadErrors === progressBars.length) {
+            showToast(`Все файлы не загрузились`, 'error');
+        } else {
+            showToast(`Загружено ${progressBars.length - uploadErrors} из ${progressBars.length} файлов`, 'warning');
+        }
         
     }, 1500);
 }
@@ -329,33 +451,43 @@ function getFileIcon(filename) {
         pdf: '<i class="fas fa-file-pdf"></i>',
         doc: '<i class="fas fa-file-word"></i>', docx: '<i class="fas fa-file-word"></i>',
         txt: '<i class="fas fa-file-alt"></i>',
+        rtf: '<i class="fas fa-file-alt"></i>',
         
         // Изображения
         jpg: '<i class="fas fa-file-image"></i>', jpeg: '<i class="fas fa-file-image"></i>',
         png: '<i class="fas fa-file-image"></i>', gif: '<i class="fas fa-file-image"></i>',
         webp: '<i class="fas fa-file-image"></i>', svg: '<i class="fas fa-file-image"></i>',
+        bmp: '<i class="fas fa-file-image"></i>', ico: '<i class="fas fa-file-image"></i>',
         
         // Видео
         mp4: '<i class="fas fa-file-video"></i>', avi: '<i class="fas fa-file-video"></i>',
         mov: '<i class="fas fa-file-video"></i>', mkv: '<i class="fas fa-file-video"></i>',
+        wmv: '<i class="fas fa-file-video"></i>', flv: '<i class="fas fa-file-video"></i>',
         
         // Аудио
         mp3: '<i class="fas fa-file-audio"></i>', wav: '<i class="fas fa-file-audio"></i>',
+        ogg: '<i class="fas fa-file-audio"></i>', flac: '<i class="fas fa-file-audio"></i>',
         
         // Архивы
         zip: '<i class="fas fa-file-archive"></i>', rar: '<i class="fas fa-file-archive"></i>',
         '7z': '<i class="fas fa-file-archive"></i>', tar: '<i class="fas fa-file-archive"></i>',
+        gz: '<i class="fas fa-file-archive"></i>',
         
         // Программы
         exe: '<i class="fas fa-cog"></i>', msi: '<i class="fas fa-cog"></i>',
+        apk: '<i class="fas fa-mobile-alt"></i>', dmg: '<i class="fas fa-laptop"></i>',
         
         // Таблицы
         xls: '<i class="fas fa-file-excel"></i>', xlsx: '<i class="fas fa-file-excel"></i>',
         csv: '<i class="fas fa-file-csv"></i>',
         
+        // Презентации
+        ppt: '<i class="fas fa-file-powerpoint"></i>', pptx: '<i class="fas fa-file-powerpoint"></i>',
+        
         // Веб
         html: '<i class="fas fa-code"></i>', css: '<i class="fas fa-code"></i>',
         js: '<i class="fas fa-code"></i>', json: '<i class="fas fa-code"></i>',
+        php: '<i class="fas fa-code"></i>', xml: '<i class="fas fa-code"></i>',
         
         // По умолчанию
         default: '<i class="fas fa-file"></i>'
@@ -382,6 +514,12 @@ function formatDate(timestamp) {
     });
 }
 
+function getRussianPlural(number) {
+    if (number % 10 === 1 && number % 100 !== 11) return '';
+    if ([2, 3, 4].includes(number % 10) && ![12, 13, 14].includes(number % 100)) return 'а';
+    return 'ов';
+}
+
 // Загрузка списка файлов
 async function loadFiles() {
     const filesList = document.getElementById('files-list');
@@ -389,9 +527,11 @@ async function loadFiles() {
     const totalFiles = document.getElementById('total-files');
     const totalSizeStats = document.getElementById('total-size-stats');
     
+    if (!filesList || !loading) return;
+    
     // Показываем загрузку
     loading.style.display = 'flex';
-    filesList.innerHTML = '';
+    filesList.style.opacity = '0.5';
     
     try {
         // Получаем список файлов
@@ -399,23 +539,33 @@ async function loadFiles() {
         currentFiles = [];
         
         // Получаем метаданные для каждого файла
-        for (const itemRef of listResult.items) {
+        const filePromises = listResult.items.map(async (itemRef) => {
             try {
                 const metadata = await itemRef.getMetadata();
                 const downloadURL = await itemRef.getDownloadURL();
                 
-                currentFiles.push({
+                // Извлекаем оригинальное имя файла
+                const fileName = itemRef.name;
+                const originalName = fileName.includes('_') 
+                    ? fileName.substring(fileName.indexOf('_', fileName.indexOf('_') + 1) + 1)
+                    : fileName;
+                
+                return {
                     name: itemRef.name,
-                    originalName: itemRef.name.includes('_') ? itemRef.name.split('_').slice(1).join('_') : itemRef.name,
+                    originalName: decodeURIComponent(originalName),
                     size: metadata.size,
                     time: metadata.timeCreated,
                     url: downloadURL,
                     fullPath: itemRef.fullPath
-                });
+                };
             } catch (error) {
                 console.error('Ошибка загрузки метаданных:', error);
+                return null;
             }
-        }
+        });
+        
+        const files = await Promise.all(filePromises);
+        currentFiles = files.filter(file => file !== null);
         
         // Сортируем файлы
         const sortType = document.getElementById('sort-select').value;
@@ -442,7 +592,7 @@ async function loadFiles() {
                         <i class="fas fa-cloud"></i>
                     </div>
                     <h3>Облако пустое</h3>
-                    <p>Загрузите свой первый файл</p>
+                    <p>Перетащите файлы в область загрузки</p>
                 </div>
             `;
         } else {
@@ -450,7 +600,7 @@ async function loadFiles() {
                 <div class="file-item">
                     <div class="file-icon">${getFileIcon(file.originalName)}</div>
                     <div class="file-info">
-                        <div class="file-name">${file.originalName}</div>
+                        <div class="file-name" title="${file.originalName}">${file.originalName}</div>
                         <div class="file-meta">
                             <span>${formatFileSize(file.size)}</span>
                             <span>•</span>
@@ -458,10 +608,10 @@ async function loadFiles() {
                         </div>
                     </div>
                     <div class="file-actions">
-                        <button class="btn-action btn-download" onclick="downloadFile('${file.url}', '${file.originalName}')" title="Скачать">
+                        <button class="btn-action btn-download" onclick="downloadFile('${encodeURIComponent(file.url)}', '${encodeURIComponent(file.originalName)}')" title="Скачать">
                             <i class="fas fa-download"></i>
                         </button>
-                        <button class="btn-action btn-delete" onclick="deleteFile('${file.name}')" title="Удалить">
+                        <button class="btn-action btn-delete" onclick="deleteFile('${encodeURIComponent(file.name)}')" title="Удалить">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -471,41 +621,63 @@ async function loadFiles() {
         
         // Показываем уведомление об успешной загрузке
         if (currentFiles.length > 0) {
-            showToast(`Загружено ${currentFiles.length} файлов`, 'info');
+            console.log(`✅ Загружено ${currentFiles.length} файлов`);
         }
         
     } catch (error) {
-        console.error('Ошибка загрузки файлов:', error);
+        console.error('❌ Ошибка загрузки файлов:', error);
         filesList.innerHTML = `
             <div class="empty-state">
                 <div class="empty-icon" style="color: #ef233c;">
                     <i class="fas fa-exclamation-triangle"></i>
                 </div>
                 <h3>Ошибка загрузки</h3>
-                <p>${error.message}</p>
+                <p>${error.message || 'Не удалось загрузить файлы'}</p>
+                <button onclick="loadFiles()" class="btn-primary-small" style="margin-top: 15px;">
+                    <i class="fas fa-redo"></i> Повторить
+                </button>
             </div>
         `;
+        showToast('Ошибка загрузки файлов', 'error');
     } finally {
         loading.style.display = 'none';
+        filesList.style.opacity = '1';
     }
 }
 
 // Скачивание файла
 function downloadFile(url, filename) {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.target = '_blank';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    
-    showToast(`Начинается скачивание: ${filename}`, 'success');
+    try {
+        const decodedUrl = decodeURIComponent(url);
+        const decodedFilename = decodeURIComponent(filename);
+        
+        const a = document.createElement('a');
+        a.href = decodedUrl;
+        a.download = decodedFilename;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(decodedUrl);
+        }, 100);
+        
+        showToast(`Скачивание: ${decodedFilename}`, 'success');
+    } catch (error) {
+        console.error('Ошибка скачивания:', error);
+        showToast('Ошибка при скачивании файла', 'error');
+    }
 }
 
 // Удаление файла
 async function deleteFile(filename) {
-    showModal('Подтверждение удаления', `Вы уверены, что хотите удалить файл "${filename.split('_').slice(1).join('_') || filename}"?`, [
+    const decodedFilename = decodeURIComponent(filename);
+    const displayName = decodedFilename.includes('_') 
+        ? decodedFilename.substring(decodedFilename.indexOf('_', decodedFilename.indexOf('_') + 1) + 1)
+        : decodedFilename;
+    
+    showModal('Подтверждение удаления', `Вы уверены, что хотите удалить файл<br><strong>"${displayName}"</strong>?`, [
         {
             text: 'Отмена',
             class: 'btn-secondary',
@@ -516,7 +688,7 @@ async function deleteFile(filename) {
             class: 'btn-danger',
             action: async () => {
                 try {
-                    await storageRef.child(filename).delete();
+                    await storageRef.child(decodedFilename).delete();
                     showToast('Файл успешно удален', 'success');
                     loadFiles();
                     hideModal();
@@ -534,17 +706,43 @@ async function deleteFile(filename) {
 // ПОИСК И СОРТИРОВКА
 // ====================
 document.getElementById('search-input').addEventListener('input', function(e) {
-    const searchTerm = e.target.value.toLowerCase();
+    const searchTerm = e.target.value.toLowerCase().trim();
     const fileItems = document.querySelectorAll('.file-item');
     
+    if (!searchTerm) {
+        fileItems.forEach(item => item.style.display = 'flex');
+        return;
+    }
+    
+    let foundCount = 0;
     fileItems.forEach(item => {
         const fileName = item.querySelector('.file-name').textContent.toLowerCase();
         if (fileName.includes(searchTerm)) {
             item.style.display = 'flex';
+            item.style.animation = 'fadeIn 0.3s ease';
+            foundCount++;
         } else {
             item.style.display = 'none';
         }
     });
+    
+    // Если ничего не найдено
+    const filesList = document.getElementById('files-list');
+    const noResults = filesList.querySelector('.no-results');
+    
+    if (foundCount === 0 && !noResults) {
+        filesList.innerHTML += `
+            <div class="empty-state no-results">
+                <div class="empty-icon">
+                    <i class="fas fa-search"></i>
+                </div>
+                <h3>Ничего не найдено</h3>
+                <p>Попробуйте изменить запрос</p>
+            </div>
+        `;
+    } else if (foundCount > 0 && noResults) {
+        noResults.remove();
+    }
 });
 
 document.getElementById('sort-select').addEventListener('change', loadFiles);
@@ -559,39 +757,66 @@ document.getElementById('refresh-btn').addEventListener('click', () => {
 // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 // ====================
 function showModal(title, body, buttons = []) {
-    document.getElementById('modal-title').textContent = title;
-    document.getElementById('modal-body').innerHTML = `<p>${body}</p>`;
-    
+    const modal = document.getElementById('modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalBody = document.getElementById('modal-body');
     const modalFooter = document.getElementById('modal-footer');
+    
+    modalTitle.textContent = title;
+    modalBody.innerHTML = body;
     modalFooter.innerHTML = '';
     
     buttons.forEach(btn => {
         const button = document.createElement('button');
         button.className = `btn ${btn.class}`;
         button.textContent = btn.text;
-        button.addEventListener('click', btn.action);
+        button.onclick = btn.action;
         modalFooter.appendChild(button);
     });
     
-    document.getElementById('modal').style.display = 'flex';
+    modal.style.display = 'flex';
+    modal.style.opacity = '0';
+    
+    setTimeout(() => {
+        modal.style.opacity = '1';
+        modal.style.transition = 'opacity 0.3s ease';
+    }, 10);
 }
 
 function hideModal() {
-    document.getElementById('modal').style.display = 'none';
+    const modal = document.getElementById('modal');
+    modal.style.opacity = '0';
+    
+    setTimeout(() => {
+        modal.style.display = 'none';
+    }, 300);
 }
 
 function showToast(message, type = 'info') {
+    // Удаляем старые тосты
+    const oldToasts = document.querySelectorAll('.toast');
+    oldToasts.forEach(toast => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    });
+    
     // Создаем элемент тоста
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
+    
+    const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+    };
+    
     toast.innerHTML = `
         <div class="toast-icon">
-            ${type === 'success' ? '<i class="fas fa-check-circle"></i>' :
-              type === 'error' ? '<i class="fas fa-exclamation-circle"></i>' :
-              '<i class="fas fa-info-circle"></i>'}
+            <i class="fas ${icons[type] || icons.info}"></i>
         </div>
         <div class="toast-message">${message}</div>
-        <button class="toast-close">&times;</button>
+        <button class="toast-close" aria-label="Закрыть">&times;</button>
     `;
     
     // Добавляем в body
@@ -615,116 +840,6 @@ function showToast(message, type = 'info') {
     }, 5000);
 }
 
-// Стили для тостов
-const toastStyles = document.createElement('style');
-toastStyles.textContent = `
-    .toast {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: white;
-        border-radius: 12px;
-        padding: 16px 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        z-index: 10000;
-        transform: translateX(150%);
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        min-width: 300px;
-        max-width: 400px;
-        border-left: 4px solid;
-    }
-    
-    .toast.show {
-        transform: translateX(0);
-    }
-    
-    .toast-success {
-        border-left-color: #4cc9f0;
-    }
-    
-    .toast-error {
-        border-left-color: #ef233c;
-    }
-    
-    .toast-info {
-        border-left-color: #4361ee;
-    }
-    
-    .toast-icon {
-        font-size: 20px;
-    }
-    
-    .toast-success .toast-icon {
-        color: #4cc9f0;
-    }
-    
-    .toast-error .toast-icon {
-        color: #ef233c;
-    }
-    
-    .toast-info .toast-icon {
-        color: #4361ee;
-    }
-    
-    .toast-message {
-        flex: 1;
-        font-size: 14px;
-        font-weight: 500;
-    }
-    
-    .toast-close {
-        background: none;
-        border: none;
-        font-size: 20px;
-        cursor: pointer;
-        color: #8d99ae;
-        padding: 0;
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-5px); }
-        75% { transform: translateX(5px); }
-    }
-    
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
-    }
-    
-    .btn {
-        padding: 10px 20px;
-        border-radius: 8px;
-        border: none;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-    
-    .btn-secondary {
-        background: #edf2f4;
-        color: #2b2d42;
-    }
-    
-    .btn-danger {
-        background: #ef233c;
-        color: white;
-    }
-    
-    .btn-danger:hover {
-        background: #d90429;
-    }
-`;
-document.head.appendChild(toastStyles);
-
 // Закрытие модального окна
 document.querySelector('.modal-close').addEventListener('click', hideModal);
 document.querySelector('.modal').addEventListener('click', function(e) {
@@ -740,5 +855,35 @@ setInterval(() => {
 
 // Запускаем загрузку файлов при старте
 if (document.getElementById('cloud-screen').style.display !== 'none') {
-    loadFiles();
+    setTimeout(loadFiles, 500);
 }
+
+// Добавляем стили для анимаций
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateX(-20px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    
+    .no-results {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 40px 20px;
+    }
+    
+    .upload-progress {
+        transition: all 0.3s ease;
+    }
+`;
+document.head.appendChild(style);
