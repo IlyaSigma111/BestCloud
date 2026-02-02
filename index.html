@@ -3,259 +3,372 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GoydaCloud 🇷🇺 | Личное облако</title>
+    <title>NCC | NeoCascadeCloud</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Экран входа -->
-    <div id="login-screen">
-        <div class="login-wrapper">
-            <div class="login-card">
-                <div class="login-header">
-                    <div class="logo">
-                        <div class="logo-icon">
-                            <i class="fas fa-cloud"></i>
-                            <span class="flag">🇷🇺</span>
+    <!-- Экран блокировки -->
+    <div id="lock-screen" class="active">
+        <div class="lock-container">
+            <div class="lock-content">
+                <div class="ncc-logo">
+                    <div class="logo-circle">
+                        <i class="fas fa-cloud"></i>
+                        <div class="cascade-effect"></div>
+                    </div>
+                    <h1 class="logo-text">
+                        <span class="logo-gradient">NCC</span>
+                        <span class="logo-subtitle">NeoCascadeCloud</span>
+                    </h1>
+                </div>
+                
+                <div class="lock-form">
+                    <div class="password-field">
+                        <div class="field-icon">
+                            <i class="fas fa-key"></i>
                         </div>
-                        <h1>GoydaCloud</h1>
-                        <p class="tagline">Безопасное облачное хранилище</p>
+                        <input type="password" id="password-input" placeholder="••••••••" autocomplete="off" autofocus>
+                        <button id="toggle-password" class="toggle-eye">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    
+                    <button id="unlock-btn" class="unlock-button">
+                        <span class="unlock-text">Разблокировать NCC</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                    
+                    <div id="lock-error" class="error-message"></div>
+                    
+                    <div class="lock-hint">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Используйте пароль администратора</span>
                     </div>
                 </div>
                 
-                <div class="login-body">
-                    <div class="form-group">
-                        <label for="password-input">
-                            <i class="fas fa-lock"></i> Пароль доступа
-                        </label>
-                        <div class="password-wrapper">
-                            <input type="password" id="password-input" placeholder="Введите пароль...">
-                            <button class="show-password" type="button">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <button id="login-btn" class="btn-primary">
-                        <i class="fas fa-sign-in-alt"></i> Войти в облако
-                    </button>
-                    
-                    <div id="error-message" class="error-message"></div>
-                    
-                    <div class="login-footer">
-                        <div class="hint">
-                            <i class="fas fa-info-circle"></i>
-                            <span>Пароль: <code>JojoTop1</code></span>
-                        </div>
+                <div class="lock-footer">
+                    <div class="security-badge">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Защищено 256-бит шифрованием</span>
                     </div>
                 </div>
             </div>
             
-            <div class="login-features">
-                <div class="feature">
-                    <i class="fas fa-shield-alt"></i>
-                    <h3>Безопасность</h3>
-                    <p>Все файлы защищены паролем</p>
-                </div>
-                <div class="feature">
-                    <i class="fas fa-bolt"></i>
-                    <h3>Скорость</h3>
-                    <p>Быстрая загрузка и скачивание</p>
-                </div>
-                <div class="feature">
-                    <i class="fas fa-infinity"></i>
-                    <h3>Доступность</h3>
-                    <p>Доступ с любого устройства</p>
-                </div>
+            <div class="lock-background">
+                <div class="cascade-wave"></div>
+                <div class="cascade-wave delay-1"></div>
+                <div class="cascade-wave delay-2"></div>
             </div>
         </div>
     </div>
 
     <!-- Основной интерфейс -->
-    <div id="cloud-screen" style="display: none;">
-        <!-- Шапка -->
-        <header class="main-header">
-            <div class="header-content">
-                <div class="brand">
-                    <div class="brand-logo">
-                        <i class="fas fa-cloud"></i>
-                        <span class="flag">🇷🇺</span>
-                    </div>
-                    <div class="brand-text">
-                        <h1>GoydaCloud</h1>
-                        <p id="storage-info">Облачное хранилище</p>
+    <div id="main-app">
+        <!-- Верхняя навигация -->
+        <nav class="top-nav">
+            <div class="nav-left">
+                <div class="app-logo">
+                    <i class="fas fa-cloud"></i>
+                    <div class="logo-text">
+                        <span class="logo-main">NCC</span>
+                        <span class="logo-sub">NeoCascadeCloud</span>
                     </div>
                 </div>
                 
-                <div class="header-actions">
-                    <div class="user-info">
-                        <div class="user-avatar">
-                            <i class="fas fa-user-shield"></i>
-                        </div>
-                        <span>Администратор</span>
-                    </div>
-                    <button id="logout-btn" class="btn-logout">
-                        <i class="fas fa-sign-out-alt"></i> Выйти
+                <div class="nav-menu">
+                    <button class="nav-item active" data-view="dashboard">
+                        <i class="fas fa-th-large"></i>
+                        <span>Панель</span>
+                    </button>
+                    <button class="nav-item" data-view="files">
+                        <i class="fas fa-folder"></i>
+                        <span>Файлы</span>
+                    </button>
+                    <button class="nav-item" data-view="upload">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span>Загрузка</span>
+                    </button>
+                    <button class="nav-item" data-view="activity">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Активность</span>
                     </button>
                 </div>
             </div>
-        </header>
+            
+            <div class="nav-right">
+                <div class="search-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="search-files" placeholder="Поиск файлов...">
+                </div>
+                
+                <div class="user-profile">
+                    <div class="profile-avatar">
+                        <i class="fas fa-user-cog"></i>
+                    </div>
+                    <div class="profile-info">
+                        <span class="profile-name">Администратор NCC</span>
+                        <span class="profile-status">Online</span>
+                    </div>
+                    <button id="logout-btn" class="logout-btn">
+                        <i class="fas fa-power-off"></i>
+                    </button>
+                </div>
+            </div>
+        </nav>
 
         <!-- Основной контент -->
-        <main class="main-content">
-            <!-- Левая колонка - Загрузка -->
-            <div class="content-left">
-                <div class="card upload-section">
-                    <div class="card-header">
-                        <h2><i class="fas fa-cloud-upload-alt"></i> Загрузка файлов</h2>
+        <main class="app-content">
+            <!-- Дашборд -->
+            <section id="dashboard-view" class="view-section active">
+                <div class="dashboard-header">
+                    <h2><i class="fas fa-th-large"></i> Панель управления NCC</h2>
+                    <button id="refresh-all" class="refresh-btn">
+                        <i class="fas fa-sync-alt"></i> Обновить
+                    </button>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card primary">
+                        <div class="stat-icon">
+                            <i class="fas fa-hdd"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value" id="total-storage">0 Б</span>
+                            <span class="stat-label">Всего места</span>
+                        </div>
                     </div>
                     
-                    <div class="card-body">
-                        <div class="upload-area" id="drop-area">
-                            <div class="upload-icon">
-                                <i class="fas fa-file-upload"></i>
-                            </div>
-                            <h3>Перетащите файлы сюда</h3>
-                            <p>или нажмите для выбора</p>
-                            <small>Поддерживаются любые типы файлов</small>
-                            <input type="file" id="file-input" multiple>
+                    <div class="stat-card success">
+                        <div class="stat-icon">
+                            <i class="fas fa-file"></i>
                         </div>
-                        
-                        <div class="selected-files" id="selected-files-container">
-                            <!-- Выбранные файлы появятся здесь -->
+                        <div class="stat-content">
+                            <span class="stat-value" id="total-files">0</span>
+                            <span class="stat-label">Файлов</span>
                         </div>
-                        
-                        <div class="upload-controls">
-                            <button id="upload-btn" class="btn-upload" disabled>
-                                <i class="fas fa-rocket"></i> Начать загрузку
-                            </button>
-                            <div class="upload-stats">
-                                <span id="total-size">0 Б</span>
-                                <span id="file-count">0 файлов</span>
-                            </div>
+                    </div>
+                    
+                    <div class="stat-card warning">
+                        <div class="stat-icon">
+                            <i class="fas fa-upload"></i>
                         </div>
-                        
-                        <div class="upload-progress" id="upload-progress">
-                            <!-- Прогресс загрузки появится здесь -->
+                        <div class="stat-content">
+                            <span class="stat-value" id="uploads-today">0</span>
+                            <span class="stat-label">Загрузок сегодня</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card danger">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value">1</span>
+                            <span class="stat-label">Пользователей</span>
                         </div>
                     </div>
                 </div>
                 
-                <div class="card quick-stats">
-                    <div class="card-header">
-                        <h2><i class="fas fa-chart-line"></i> Статистика</h2>
+                <div class="content-row">
+                    <div class="quick-upload">
+                        <h3><i class="fas fa-bolt"></i> Быстрая загрузка</h3>
+                        <div class="upload-dropzone" id="quick-drop">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Перетащите файлы сюда</p>
+                            <small>или нажмите для выбора</small>
+                            <input type="file" id="quick-input" multiple>
+                        </div>
+                        <button id="quick-upload-btn" class="action-btn" disabled>
+                            <i class="fas fa-rocket"></i> Загрузить выбранное
+                        </button>
                     </div>
-                    <div class="card-body">
-                        <div class="stats-grid">
-                            <div class="stat-item">
-                                <div class="stat-icon">
-                                    <i class="fas fa-file"></i>
-                                </div>
-                                <div class="stat-info">
-                                    <span class="stat-value" id="total-files">0</span>
-                                    <span class="stat-label">Файлов</span>
-                                </div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-icon">
-                                    <i class="fas fa-database"></i>
-                                </div>
-                                <div class="stat-info">
-                                    <span class="stat-value" id="total-size-stats">0 Б</span>
-                                    <span class="stat-label">Всего</span>
-                                </div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-icon">
-                                    <i class="fas fa-history"></i>
-                                </div>
-                                <div class="stat-info">
-                                    <span class="stat-value">∞</span>
-                                    <span class="stat-label">Доступ</span>
-                                </div>
-                            </div>
+                    
+                    <div class="recent-files">
+                        <div class="section-header">
+                            <h3><i class="fas fa-history"></i> Недавние файлы</h3>
+                            <a href="#" class="view-all">Все файлы →</a>
+                        </div>
+                        <div id="recent-files-list" class="files-list">
+                            <!-- Недавние файлы -->
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Правая колонка - Файлы -->
-            <div class="content-right">
-                <div class="card files-section">
-                    <div class="card-header">
-                        <h2><i class="fas fa-folder"></i> Мои файлы</h2>
-                        <div class="header-actions">
-                            <button id="refresh-btn" class="btn-icon">
-                                <i class="fas fa-sync-alt"></i>
-                            </button>
-                            <div class="search-box">
-                                <i class="fas fa-search"></i>
-                                <input type="text" id="search-input" placeholder="Поиск файлов...">
+            <!-- Файлы -->
+            <section id="files-view" class="view-section">
+                <div class="files-header">
+                    <h2><i class="fas fa-folder"></i> Управление файлами</h2>
+                    <div class="files-controls">
+                        <div class="sort-control">
+                            <i class="fas fa-sort-amount-down"></i>
+                            <select id="sort-files">
+                                <option value="newest">Сначала новые</option>
+                                <option value="oldest">Сначала старые</option>
+                                <option value="name">По имени A-Z</option>
+                                <option value="size">По размеру</option>
+                            </select>
+                        </div>
+                        <button class="view-toggle active">
+                            <i class="fas fa-th"></i>
+                        </button>
+                        <button class="view-toggle">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="files-container">
+                    <div id="all-files" class="files-grid">
+                        <!-- Все файлы -->
+                    </div>
+                    
+                    <div id="files-loading" class="loading-state">
+                        <div class="ncc-spinner">
+                            <div class="spinner-ring"></div>
+                            <div class="spinner-ring"></div>
+                            <div class="spinner-ring"></div>
+                        </div>
+                        <p>Загружаем файлы из NCC...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Загрузка -->
+            <section id="upload-view" class="view-section">
+                <div class="upload-header">
+                    <h2><i class="fas fa-cloud-upload-alt"></i> Загрузка в NCC</h2>
+                    <div class="upload-stats">
+                        <span id="selected-total">0 файлов</span>
+                        <span id="selected-total-size">0 Б</span>
+                    </div>
+                </div>
+                
+                <div class="upload-main">
+                    <div class="upload-zone-large" id="main-dropzone">
+                        <div class="upload-icon-large">
+                            <i class="fas fa-file-upload"></i>
+                            <div class="upload-pulse"></div>
+                        </div>
+                        <h3>Перетащите файлы в NCC</h3>
+                        <p>Поддерживаются любые типы файлов</p>
+                        <small>Максимум 10 файлов, до 500MB каждый</small>
+                        
+                        <input type="file" id="main-file-input" multiple>
+                        
+                        <button class="browse-files-btn">
+                            <i class="fas fa-folder-open"></i> Выбрать файлы
+                        </button>
+                    </div>
+                    
+                    <div class="selected-container">
+                        <h4><i class="fas fa-list-check"></i> Выбранные файлы</h4>
+                        <div id="selected-files-list" class="selected-list">
+                            <!-- Выбранные файлы -->
+                        </div>
+                    </div>
+                    
+                    <div class="upload-actions">
+                        <button id="clear-selection" class="secondary-btn">
+                            <i class="fas fa-times"></i> Очистить
+                        </button>
+                        <button id="start-upload" class="primary-btn" disabled>
+                            <i class="fas fa-rocket"></i> Начать загрузку
+                        </button>
+                    </div>
+                    
+                    <div id="upload-progress-area" class="progress-area">
+                        <!-- Прогресс загрузки -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Активность -->
+            <section id="activity-view" class="view-section">
+                <div class="activity-header">
+                    <h2><i class="fas fa-chart-line"></i> Активность NCC</h2>
+                    <div class="time-filter">
+                        <select id="activity-period">
+                            <option value="today">Сегодня</option>
+                            <option value="week">За неделю</option>
+                            <option value="month">За месяц</option>
+                            <option value="all">Все время</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="activity-content">
+                    <div class="activity-chart">
+                        <h3>Использование хранилища</h3>
+                        <div class="storage-chart">
+                            <div class="chart-visual">
+                                <div class="chart-circle">
+                                    <div class="chart-fill" id="storage-fill"></div>
+                                    <div class="chart-center">
+                                        <span id="storage-percent">0%</span>
+                                        <small>занято</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chart-info">
+                                <div class="chart-item">
+                                    <span class="chart-dot primary"></span>
+                                    <span>Использовано: <strong id="used-storage">0 Б</strong></span>
+                                </div>
+                                <div class="chart-item">
+                                    <span class="chart-dot light"></span>
+                                    <span>Свободно: <strong id="free-storage">∞</strong></span>
+                                </div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="card-body">
-                        <div class="files-controls">
-                            <div class="sort-options">
-                                <select id="sort-select">
-                                    <option value="newest">Сначала новые</option>
-                                    <option value="oldest">Сначала старые</option>
-                                    <option value="name">По имени</option>
-                                    <option value="size">По размеру</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="files-container">
-                            <div id="files-list">
-                                <!-- Файлы появятся здесь -->
-                                <div class="empty-state">
-                                    <div class="empty-icon">
-                                        <i class="fas fa-cloud"></i>
-                                    </div>
-                                    <h3>Облако пустое</h3>
-                                    <p>Загрузите свой первый файл</p>
-                                </div>
-                            </div>
-                            <div id="loading" class="loading-state">
-                                <div class="spinner">
-                                    <i class="fas fa-spinner fa-spin"></i>
-                                </div>
-                                <p>Загружаем файлы...</p>
-                            </div>
+                    <div class="activity-log">
+                        <h3>История активности</h3>
+                        <div id="activity-list" class="log-list">
+                            <!-- История активности -->
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
         </main>
-
-        <!-- Футер -->
-        <footer class="main-footer">
-            <div class="footer-content">
-                <p>© 2024 GoydaCloud v2.0 | Все права защищены</p>
-                <p class="footer-links">
-                    <span><i class="fas fa-server"></i> Firebase Storage</span>
-                    <span><i class="fas fa-shield-alt"></i> Защищено паролем</span>
-                    <span><i class="fas fa-bolt"></i> Высокая скорость</span>
-                </p>
+        
+        <!-- Статус бар -->
+        <footer class="app-footer">
+            <div class="footer-left">
+                <span class="ncc-status">
+                    <i class="fas fa-circle status-online"></i>
+                    NCC Online • Все системы работают
+                </span>
+            </div>
+            <div class="footer-right">
+                <span id="current-time">--:--:--</span>
+                <span class="footer-separator">•</span>
+                <span id="storage-status">Загрузка...</span>
             </div>
         </footer>
     </div>
 
-    <!-- Модальное окно -->
-    <div id="modal" class="modal">
-        <div class="modal-content">
+    <!-- Модалки -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal-content" id="modal-content">
             <div class="modal-header">
-                <h3 id="modal-title">Информация</h3>
+                <h3 id="modal-title">Подтверждение</h3>
                 <button class="modal-close">&times;</button>
             </div>
             <div class="modal-body" id="modal-body"></div>
             <div class="modal-footer" id="modal-footer"></div>
         </div>
     </div>
+
+    <!-- Тосты -->
+    <div id="toast-container"></div>
 
     <script src="app.js"></script>
 </body>
