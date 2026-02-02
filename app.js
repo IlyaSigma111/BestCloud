@@ -1,7 +1,15 @@
 // ====================
-// КОНФИГУРАЦИЯ FIREBASE
+// КОНФИГУРАЦИЯ NCC
 // ====================
-const firebaseConfig = {
+const NCC_CONFIG = {
+    PASSWORD: "NCC2024", // Пароль администратора
+    MAX_FILES: 10,
+    MAX_SIZE: 500 * 1024 * 1024, // 500MB
+    APP_NAME: "NeoCascadeCloud"
+};
+
+// Конфигурация Firebase
+const FIREBASE_CONFIG = {
     apiKey: "AIzaSyC9OSllGc8U-au0281HfikJkI5caDkqOYc",
     authDomain: "goydacloud.firebaseapp.com",
     projectId: "goydacloud",
@@ -11,462 +19,508 @@ const firebaseConfig = {
 };
 
 // Инициализация Firebase
-let storage, storageRef;
+let firebaseApp, storageRef;
 
 try {
     if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-        console.log("✅ Firebase успешно инициализирован");
+        firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+        console.log("✅ NCC: Firebase инициализирован");
     } else {
-        firebase.app(); // если уже инициализирован
+        firebaseApp = firebase.app();
+        console.log("✅ NCC: Firebase уже инициализирован");
     }
     
-    storage = firebase.storage();
-    storageRef = storage.ref();
+    storageRef = firebase.storage().ref();
+    console.log("✅ NCC: Хранилище готово");
 } catch (error) {
-    console.error("❌ Ошибка инициализации Firebase:", error);
-    showToast('Ошибка подключения к облаку', 'error');
+    console.error("❌ NCC: Ошибка инициализации Firebase:", error);
+    showToast("Ошибка подключения к NCC", "error");
 }
 
 // ====================
-// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ NCC
 // ====================
-const CORRECT_PASSWORD = "JojoTop1";
-let currentFiles = [];
+let nccFiles = [];
 let selectedFiles = [];
 let isUploading = false;
+let uploadQueue = [];
 
 // ====================
-// АВТОРИЗАЦИЯ
+// ИНИЦИАЛИЗАЦИЯ NCC
 // ====================
-function checkPassword() {
-    const input = document.getElementById('password-input').value.trim();
-    const errorElement = document.getElementById('error-message');
-    const loginBtn = document.getElementById('login-btn');
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("🚀 NCC: Запуск системы...");
     
-    if (!input) {
-        errorElement.textContent = "⚠️ Введите пароль";
-        errorElement.style.color = "#f59e0b";
+    initializeLockScreen();
+    initializeNavigation();
+    initializeFileUpload();
+    initializeDashboard();
+    updateClock();
+    
+    // Запускаем обновление времени
+    setInterval(updateClock, 1000);
+    
+    console.log("✅ NCC: Система инициализирована");
+});
+
+// ====================
+// ЭКРАН БЛОКИРОВКИ
+// ====================
+function initializeLockScreen() {
+    const passwordInput = document.getElementById('password-input');
+    const unlockBtn = document.getElementById('unlock-btn');
+    const toggleBtn = document.getElementById('toggle-password');
+    
+    if (!passwordInput || !unlockBtn || !toggleBtn) {
+        console.error("❌ NCC: Элементы блокировки не найдены");
         return;
     }
     
-    if (input === CORRECT_PASSWORD) {
-        // Анимация успеха
-        errorElement.textContent = "✅ Успешный вход!";
-        errorElement.style.color = "#10b981";
+    // Фокус на поле пароля
+    setTimeout(() => passwordInput.focus(), 500);
+    
+    // Показать/скрыть пароль
+    toggleBtn.addEventListener('click', function() {
+        const type = passwordInput.type === 'password' ? 'text' : 'password';
+        passwordInput.type = type;
+        this.innerHTML = `<i class="fas fa-${type === 'password' ? 'eye' : 'eye-slash'}"></i>`;
+    });
+    
+    // Разблокировка по кнопке
+    unlockBtn.addEventListener('click', unlockNCC);
+    
+    // Разблокировка по Enter
+    passwordInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            unlockNCC();
+        }
+    });
+}
+
+function unlockNCC() {
+    const input = document.getElementById('password-input');
+    const errorElement = document.getElementById('lock-error');
+    const unlockBtn = document.getElementById('unlock-btn');
+    
+    if (!input.value.trim()) {
+        showLockError("Введите пароль", errorElement);
+        return;
+    }
+    
+    if (input.value === NCC_CONFIG.PASSWORD) {
+        // Успешная разблокировка
+        unlockBtn.disabled = true;
+        unlockBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Доступ разрешен';
         
-        loginBtn.innerHTML = '<i class="fas fa-check"></i> Успешно!';
-        loginBtn.style.background = 'linear-gradient(135deg, #10b981, #34d399)';
-        loginBtn.disabled = true;
+        errorElement.textContent = "✅ NCC разблокирован";
+        errorElement.style.color = "#38b000";
+        errorElement.style.background = "rgba(56, 176, 0, 0.1)";
+        errorElement.style.border = "1px solid rgba(56, 176, 0, 0.3)";
         
-        // Плавный переход
+        // Анимация перехода
         setTimeout(() => {
-            document.getElementById('login-screen').style.opacity = '0';
-            document.getElementById('login-screen').style.transform = 'scale(0.9)';
+            document.getElementById('lock-screen').classList.remove('active');
+            document.getElementById('lock-screen').style.opacity = '0';
             
             setTimeout(() => {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('cloud-screen').style.display = 'flex';
-                document.getElementById('cloud-screen').style.opacity = '0';
+                document.getElementById('lock-screen').style.display = 'none';
+                document.getElementById('main-app').style.display = 'block';
                 
-                // Инициализация облака
+                // Загружаем данные
+                loadNCCData();
+                
+                // Показываем приветствие
                 setTimeout(() => {
-                    document.getElementById('cloud-screen').style.opacity = '1';
-                    document.getElementById('cloud-screen').style.transition = 'opacity 0.5s ease';
-                    
-                    // Загружаем файлы с таймаутом для гарантии
-                    setTimeout(() => {
-                        if (storageRef) {
-                            loadFiles();
-                        } else {
-                            showToast('Ошибка подключения к Firebase', 'error');
-                        }
-                    }, 300);
-                }, 50);
+                    showToast(`Добро пожаловать в ${NCC_CONFIG.APP_NAME}!`, "success");
+                }, 500);
             }, 300);
-        }, 800);
-    } else {
-        // Анимация ошибки
-        errorElement.textContent = "❌ Неверный пароль!";
-        errorElement.style.color = "#ef4444";
-        
-        const passwordInput = document.getElementById('password-input');
-        passwordInput.style.borderColor = '#ef4444';
-        passwordInput.style.animation = 'shake 0.5s';
-        
-        loginBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Ошибка!';
-        loginBtn.style.background = 'linear-gradient(135deg, #ef4444, #f59e0b)';
-        
-        setTimeout(() => {
-            passwordInput.style.animation = '';
-            passwordInput.value = '';
-            passwordInput.focus();
-            
-            loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти в облако';
-            loginBtn.style.background = 'linear-gradient(135deg, #6366f1, #8b5cf6)';
         }, 1000);
+    } else {
+        showLockError("Неверный пароль", errorElement);
+        
+        // Анимация ошибки
+        input.style.animation = 'none';
+        setTimeout(() => {
+            input.style.animation = 'shakeError 0.5s ease';
+            input.value = '';
+            input.focus();
+        }, 10);
     }
 }
 
-// Привязка событий при загрузке страницы
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("🚀 DOM загружен, инициализируем приложение...");
-    
-    // Привязка кнопки входа
-    const loginBtn = document.getElementById('login-btn');
-    if (loginBtn) {
-        loginBtn.addEventListener('click', checkPassword);
-        console.log("✅ Кнопка входа привязана");
-    }
-    
-    // Автофокус на поле пароля
-    const passwordInput = document.getElementById('password-input');
-    if (passwordInput) {
-        setTimeout(() => passwordInput.focus(), 300);
-    }
-    
-    // Показать/скрыть пароль
-    const showPasswordBtn = document.querySelector('.show-password');
-    if (showPasswordBtn) {
-        showPasswordBtn.addEventListener('click', function() {
-            const input = document.getElementById('password-input');
-            const icon = this.querySelector('i');
-            
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.className = 'fas fa-eye-slash';
-            } else {
-                input.type = 'password';
-                icon.className = 'fas fa-eye';
-            }
-        });
-    }
-    
-    // Вход по Enter
-    if (passwordInput) {
-        passwordInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                checkPassword();
-            }
-        });
-    }
-    
-    // Инициализация загрузки файлов
-    initFileUpload();
-    
-    console.log("✅ Приложение инициализировано");
-});
+function showLockError(message, element) {
+    element.textContent = `❌ ${message}`;
+    element.style.color = "#ff0054";
+    element.style.background = "rgba(255, 0, 84, 0.1)";
+    element.style.border = "1px solid rgba(255, 0, 84, 0.3)";
+}
 
-// Инициализация загрузки файлов
-function initFileUpload() {
-    const dropArea = document.getElementById('drop-area');
-    const fileInput = document.getElementById('file-input');
-    
-    if (!dropArea || !fileInput) {
-        console.error("❌ Элементы загрузки не найдены");
-        return;
-    }
-    
-    // Обработка выбора файлов
-    fileInput.addEventListener('change', handleFileSelect);
-    
-    // Drag and Drop
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropArea.addEventListener(eventName, preventDefaults, false);
-    });
-    
-    function preventDefaults(e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-    
-    ['dragenter', 'dragover'].forEach(eventName => {
-        dropArea.addEventListener(eventName, highlight, false);
-    });
-    
-    ['dragleave', 'drop'].forEach(eventName => {
-        dropArea.addEventListener(eventName, unhighlight, false);
-    });
-    
-    function highlight() {
-        dropArea.style.borderColor = '#6366f1';
-        dropArea.style.background = 'rgba(99, 102, 241, 0.1)';
-    }
-    
-    function unhighlight() {
-        dropArea.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-        dropArea.style.background = 'rgba(255, 255, 255, 0.03)';
-    }
-    
-    dropArea.addEventListener('drop', handleDrop, false);
-    
-    function handleDrop(e) {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        handleFiles(files);
-    }
-    
-    // Привязка кнопки загрузки
-    const uploadBtn = document.getElementById('upload-btn');
-    if (uploadBtn) {
-        uploadBtn.addEventListener('click', uploadFile);
-    }
-    
-    // Привязка кнопки обновления
-    const refreshBtn = document.getElementById('refresh-btn');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', () => {
-            loadFiles();
-            showToast('Список файлов обновлен', 'info');
-        });
-    }
-    
-    // Привязка поиска
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-        searchInput.addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const fileItems = document.querySelectorAll('.file-item');
+// ====================
+// НАВИГАЦИЯ
+// ====================
+function initializeNavigation() {
+    // Навигация по разделам
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const view = this.dataset.view;
             
-            fileItems.forEach(item => {
-                const fileName = item.querySelector('.file-name').textContent.toLowerCase();
-                item.style.display = fileName.includes(searchTerm) ? 'flex' : 'none';
+            // Обновляем активный элемент
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Показываем выбранный раздел
+            document.querySelectorAll('.view-section').forEach(section => {
+                section.classList.remove('active');
             });
+            
+            document.getElementById(`${view}-view`).classList.add('active');
+            
+            // Загружаем данные для раздела
+            switch(view) {
+                case 'files':
+                    loadNCCFiles();
+                    break;
+                case 'activity':
+                    updateActivity();
+                    break;
+            }
         });
-    }
+    });
     
-    // Привязка сортировки
-    const sortSelect = document.getElementById('sort-select');
-    if (sortSelect) {
-        sortSelect.addEventListener('change', loadFiles);
-    }
-    
-    // Привязка выхода
+    // Выход из системы
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function() {
-            showModal('Подтверждение выхода', 'Вы уверены, что хотите выйти из GoydaCloud?', [
-                {
-                    text: 'Отмена',
-                    class: 'btn-secondary',
-                    action: () => hideModal()
-                },
-                {
-                    text: 'Выйти',
-                    class: 'btn-danger',
-                    action: () => {
-                        hideModal();
-                        document.getElementById('cloud-screen').style.display = 'none';
-                        document.getElementById('login-screen').style.display = 'flex';
-                        document.getElementById('password-input').value = '';
-                        document.getElementById('error-message').textContent = '';
-                        document.getElementById('login-btn').innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти в облако';
-                        document.getElementById('login-btn').style.background = 'linear-gradient(135deg, #6366f1, #8b5cf6)';
-                        setTimeout(() => {
-                            document.getElementById('password-input').focus();
-                        }, 100);
+            showModal(
+                'Выход из NCC',
+                'Вы уверены, что хотите выйти из системы?',
+                [
+                    {
+                        text: 'Отмена',
+                        class: 'modal-btn-secondary',
+                        action: () => hideModal()
+                    },
+                    {
+                        text: 'Выйти',
+                        class: 'modal-btn-danger',
+                        action: () => {
+                            hideModal();
+                            
+                            // Плавный выход
+                            document.getElementById('main-app').style.opacity = '0';
+                            
+                            setTimeout(() => {
+                                document.getElementById('main-app').style.display = 'none';
+                                document.getElementById('lock-screen').style.display = 'flex';
+                                document.getElementById('lock-screen').classList.add('active');
+                                
+                                setTimeout(() => {
+                                    document.getElementById('lock-screen').style.opacity = '1';
+                                    document.getElementById('password-input').value = '';
+                                    document.getElementById('password-input').focus();
+                                }, 50);
+                            }, 300);
+                        }
                     }
-                }
-            ]);
+                ]
+            );
         });
     }
     
-    console.log("✅ Загрузка файлов инициализирована");
+    // Обновление всех данных
+    const refreshBtn = document.getElementById('refresh-all');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Обновление';
+            this.disabled = true;
+            
+            Promise.all([
+                loadNCCData(),
+                loadNCCFiles()
+            ]).then(() => {
+                this.innerHTML = '<i class="fas fa-sync-alt"></i> Обновить';
+                this.disabled = false;
+                showToast('Данные NCC обновлены', 'success');
+            });
+        });
+    }
 }
 
-// Обработка файлов
-function handleFileSelect(e) {
-    const files = e.target.files;
+// ====================
+// ЗАГРУЗКА ФАЙЛОВ
+// ====================
+function initializeFileUpload() {
+    const dropZones = ['#quick-drop', '#main-dropzone'];
+    
+    dropZones.forEach(selector => {
+        const dropzone = document.querySelector(selector);
+        if (!dropzone) return;
+        
+        const fileInput = dropzone.querySelector('input[type="file"]');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
+            dropzone.addEventListener(event, preventDefaults, false);
+        });
+        
+        ['dragenter', 'dragover'].forEach(event => {
+            dropzone.addEventListener(event, () => {
+                dropzone.style.borderColor = 'var(--ncc-primary)';
+                dropzone.style.background = 'rgba(0, 180, 216, 0.1)';
+            }, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(event => {
+            dropzone.addEventListener(event, () => {
+                dropzone.style.borderColor = 'var(--border-color)';
+                dropzone.style.background = '';
+            }, false);
+        });
+        
+        dropzone.addEventListener('drop', handleDrop, false);
+        dropzone.addEventListener('click', () => fileInput.click());
+        
+        if (fileInput) {
+            fileInput.addEventListener('change', handleFileSelect);
+        }
+    });
+    
+    // Кнопки управления
+    const startUploadBtn = document.getElementById('start-upload');
+    const quickUploadBtn = document.getElementById('quick-upload-btn');
+    const clearSelectionBtn = document.getElementById('clear-selection');
+    
+    if (startUploadBtn) {
+        startUploadBtn.addEventListener('click', uploadFilesToNCC);
+    }
+    
+    if (quickUploadBtn) {
+        quickUploadBtn.addEventListener('click', uploadFilesToNCC);
+    }
+    
+    if (clearSelectionBtn) {
+        clearSelectionBtn.addEventListener('click', clearSelectedFiles);
+    }
+}
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
     handleFiles(files);
+}
+
+function handleFileSelect(e) {
+    handleFiles(e.target.files);
 }
 
 function handleFiles(files) {
     if (!files || files.length === 0) return;
     
-    // Ограничение на количество файлов
-    if (files.length > 20) {
-        showToast('Максимально 20 файлов за раз', 'warning');
+    // Ограничения
+    if (files.length > NCC_CONFIG.MAX_FILES) {
+        showToast(`Максимум ${NCC_CONFIG.MAX_FILES} файлов за раз`, 'warning');
         return;
     }
     
-    // Проверка размера файлов
-    const maxSize = 500 * 1024 * 1024; // 500MB
-    let validFiles = [];
-    
+    // Проверка размера
     Array.from(files).forEach(file => {
-        if (file.size > maxSize) {
-            showToast(`Файл ${file.name} слишком большой (макс. 500MB)`, 'warning');
-        } else {
-            validFiles.push(file);
+        if (file.size > NCC_CONFIG.MAX_SIZE) {
+            showToast(`Файл ${file.name} превышает 500MB`, 'warning');
+            return;
+        }
+        
+        // Добавляем в очередь
+        if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+            selectedFiles.push(file);
         }
     });
     
-    selectedFiles = [...selectedFiles, ...validFiles];
     updateSelectedFilesUI();
 }
 
 function updateSelectedFilesUI() {
-    const container = document.getElementById('selected-files-container');
-    const uploadBtn = document.getElementById('upload-btn');
-    const totalSize = document.getElementById('total-size');
-    const fileCount = document.getElementById('file-count');
+    const selectedList = document.getElementById('selected-files-list');
+    const startBtn = document.getElementById('start-upload');
+    const quickBtn = document.getElementById('quick-upload-btn');
+    const totalSpan = document.getElementById('selected-total');
+    const sizeSpan = document.getElementById('selected-total-size');
     
-    if (!container || !uploadBtn || !totalSize || !fileCount) return;
-    
-    if (selectedFiles.length === 0) {
-        container.innerHTML = '';
-        uploadBtn.disabled = true;
-        totalSize.textContent = '0 Б';
-        fileCount.textContent = '0 файлов';
-        return;
-    }
+    if (!selectedList) return;
     
     // Обновляем статистику
-    const totalSizeBytes = selectedFiles.reduce((sum, file) => sum + file.size, 0);
-    totalSize.textContent = formatFileSize(totalSizeBytes);
-    fileCount.textContent = `${selectedFiles.length} файлов`;
+    const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0);
     
-    // Обновляем список файлов
-    container.innerHTML = selectedFiles.map((file, index) => `
-        <div class="file-preview">
-            <div class="file-preview-icon">
+    if (totalSpan) totalSpan.textContent = `${selectedFiles.length} файлов`;
+    if (sizeSpan) sizeSpan.textContent = formatFileSize(totalSize);
+    
+    // Обновляем список
+    selectedList.innerHTML = selectedFiles.map((file, index) => `
+        <div class="file-item">
+            <div class="file-icon">
                 ${getFileIcon(file.name)}
             </div>
-            <div class="file-preview-info">
-                <div class="file-preview-name" title="${file.name}">${file.name}</div>
-                <div class="file-preview-size">${formatFileSize(file.size)}</div>
+            <div class="file-details">
+                <div class="file-name" title="${file.name}">${file.name}</div>
+                <div class="file-info">
+                    <span>${formatFileSize(file.size)}</span>
+                    <span>•</span>
+                    <span>${file.type || 'Неизвестный тип'}</span>
+                </div>
             </div>
-            <button class="file-preview-remove" onclick="removeFile(${index})">
+            <button class="file-remove" onclick="removeSelectedFile(${index})" title="Удалить">
                 <i class="fas fa-times"></i>
             </button>
         </div>
     `).join('');
     
-    uploadBtn.disabled = false;
+    // Обновляем кнопки
+    const isEnabled = selectedFiles.length > 0 && !isUploading;
+    if (startBtn) {
+        startBtn.disabled = !isEnabled;
+        startBtn.innerHTML = isEnabled 
+            ? '<i class="fas fa-rocket"></i> Начать загрузку' 
+            : '<i class="fas fa-rocket"></i> Выберите файлы';
+    }
+    
+    if (quickBtn) {
+        quickBtn.disabled = !isEnabled;
+        quickBtn.innerHTML = isEnabled
+            ? '<i class="fas fa-rocket"></i> Загрузить выбранное'
+            : '<i class="fas fa-rocket"></i> Выберите файлы';
+    }
 }
 
-function removeFile(index) {
+function removeSelectedFile(index) {
     selectedFiles.splice(index, 1);
     updateSelectedFilesUI();
     showToast('Файл удален из списка', 'info');
 }
 
-// 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ ЗАГРУЗКИ ФАЙЛОВ
-async function uploadFile() {
+function clearSelectedFiles() {
+    if (selectedFiles.length === 0) return;
+    
+    selectedFiles = [];
+    updateSelectedFilesUI();
+    showToast('Список файлов очищен', 'info');
+}
+
+// ====================
+// ЗАГРУЗКА ФАЙЛОВ В NCC
+// ====================
+async function uploadFilesToNCC() {
     if (selectedFiles.length === 0) {
-        showToast('Выберите файлы для загрузки', 'warning');
+        showToast('Нет файлов для загрузки', 'warning');
         return;
     }
     
     if (isUploading) {
-        showToast('Загрузка уже идет...', 'warning');
+        showToast('Загрузка уже выполняется', 'warning');
         return;
     }
     
     if (!storageRef) {
-        showToast('Ошибка подключения к хранилищу', 'error');
+        showToast('Ошибка подключения к NCC', 'error');
         return;
     }
     
-    const uploadBtn = document.getElementById('upload-btn');
-    const progressContainer = document.getElementById('upload-progress');
-    
-    if (!uploadBtn || !progressContainer) return;
-    
     isUploading = true;
-    uploadBtn.disabled = true;
-    uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
+    const progressArea = document.getElementById('upload-progress-area');
     
-    progressContainer.innerHTML = '';
-    progressContainer.style.display = 'block';
-    
-    let uploadErrors = 0;
-    let uploadSuccess = 0;
-    
-    // Создаем прогресс-бары
-    const progressBars = selectedFiles.map((file, index) => {
-        const progressDiv = document.createElement('div');
-        progressDiv.className = 'progress-item';
-        progressDiv.innerHTML = `
-            <div class="progress-header">
-                <span class="progress-filename" title="${file.name}">${file.name}</span>
-                <span class="progress-percent" id="percent-${index}">0%</span>
-            </div>
-            <div class="progress-bar">
-                <div class="progress-fill" id="progress-${index}" style="width: 0%"></div>
-            </div>
-        `;
-        progressContainer.appendChild(progressDiv);
-        
-        return {
-            element: progressDiv,
-            percentElement: document.getElementById(`percent-${index}`),
-            fillElement: document.getElementById(`progress-${index}`),
-            file: file
-        };
+    // Настраиваем UI для загрузки
+    document.querySelectorAll('[id*="upload"], [id*="start-upload"]').forEach(btn => {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
     });
     
+    // Показываем область прогресса
+    if (progressArea) {
+        progressArea.style.display = 'block';
+        progressArea.innerHTML = `
+            <h4><i class="fas fa-sync-alt fa-spin"></i> Загрузка файлов в NCC</h4>
+            <div class="upload-progress-list"></div>
+        `;
+    }
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
     // Загружаем файлы последовательно
-    for (let i = 0; i < progressBars.length; i++) {
-        const pb = progressBars[i];
-        const file = pb.file;
-        
-        // Генерируем уникальное имя файла
-        const timestamp = Date.now();
-        const random = Math.random().toString(36).substring(2, 15);
-        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const fileName = `${timestamp}_${random}_${safeName}`;
+    for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        const fileName = `ncc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${file.name}`;
         
         try {
             const fileRef = storageRef.child(fileName);
             
-            // Используем промис для загрузки
+            // Создаем элемент прогресса
+            const progressItem = document.createElement('div');
+            progressItem.className = 'progress-item';
+            progressItem.innerHTML = `
+                <div class="progress-header">
+                    <span class="progress-name" title="${file.name}">${file.name}</span>
+                    <span class="progress-percent">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 0%"></div>
+                </div>
+            `;
+            
+            if (progressArea) {
+                progressArea.querySelector('.upload-progress-list').appendChild(progressItem);
+            }
+            
+            const progressPercent = progressItem.querySelector('.progress-percent');
+            const progressFill = progressItem.querySelector('.progress-fill');
+            
+            // Загружаем файл
             await new Promise((resolve, reject) => {
                 const uploadTask = fileRef.put(file);
                 
                 uploadTask.on('state_changed',
                     (snapshot) => {
-                        // Прогресс загрузки
+                        // Обновляем прогресс
                         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        const roundedProgress = Math.round(progress);
+                        const rounded = Math.round(progress);
                         
-                        pb.percentElement.textContent = `${roundedProgress}%`;
-                        pb.fillElement.style.width = `${progress}%`;
+                        progressPercent.textContent = `${rounded}%`;
+                        progressFill.style.width = `${progress}%`;
                         
-                        // Меняем цвет в зависимости от прогресса
+                        // Меняем цвет
                         if (progress < 30) {
-                            pb.fillElement.style.background = 'linear-gradient(90deg, #ef4444, #f59e0b)';
+                            progressFill.style.background = 'linear-gradient(90deg, #ff0054, #ffbe0b)';
                         } else if (progress < 70) {
-                            pb.fillElement.style.background = 'linear-gradient(90deg, #f59e0b, #10b981)';
+                            progressFill.style.background = 'linear-gradient(90deg, #ffbe0b, #00b4d8)';
                         } else {
-                            pb.fillElement.style.background = 'linear-gradient(90deg, #10b981, #6366f1)';
+                            progressFill.style.background = 'linear-gradient(90deg, #00b4d8, #38b000)';
                         }
                     },
                     (error) => {
                         console.error('Ошибка загрузки:', error);
-                        pb.percentElement.textContent = '❌ Ошибка';
-                        pb.fillElement.style.background = '#ef4444';
-                        pb.fillElement.style.width = '100%';
-                        uploadErrors++;
+                        progressPercent.textContent = '❌ Ошибка';
+                        progressFill.style.background = '#ff0054';
+                        progressFill.style.width = '100%';
+                        errorCount++;
                         resolve(); // Продолжаем несмотря на ошибку
                     },
                     async () => {
-                        // Успешная загрузка
                         try {
-                            // Получаем URL файла
-                            const downloadURL = await fileRef.getDownloadURL();
-                            pb.percentElement.textContent = '✅ Готово';
-                            pb.fillElement.style.background = 'linear-gradient(90deg, #10b981, #6366f1)';
-                            pb.fillElement.style.width = '100%';
-                            pb.element.style.animation = 'pulse 1s';
-                            uploadSuccess++;
+                            // Получаем URL загруженного файла
+                            await fileRef.getDownloadURL();
+                            progressPercent.textContent = '✅ Загружен';
+                            progressFill.style.background = 'linear-gradient(90deg, #00b4d8, #38b000)';
+                            progressFill.style.width = '100%';
+                            successCount++;
                             resolve();
                         } catch (urlError) {
                             console.error('Ошибка получения URL:', urlError);
-                            pb.percentElement.textContent = '⚠️ Загружен, но ошибка URL';
-                            pb.fillElement.style.background = '#f59e0b';
-                            uploadErrors++;
+                            progressPercent.textContent = '⚠️ Загружен без URL';
+                            progressFill.style.background = '#ffbe0b';
+                            errorCount++;
                             resolve();
                         }
                     }
@@ -475,14 +529,11 @@ async function uploadFile() {
             
         } catch (error) {
             console.error(`Ошибка загрузки файла ${file.name}:`, error);
-            pb.percentElement.textContent = '❌ Ошибка';
-            pb.fillElement.style.background = '#ef4444';
-            pb.fillElement.style.width = '100%';
-            uploadErrors++;
+            errorCount++;
         }
         
         // Небольшая пауза между файлами
-        if (i < progressBars.length - 1) {
+        if (i < selectedFiles.length - 1) {
             await new Promise(resolve => setTimeout(resolve, 100));
         }
     }
@@ -490,98 +541,104 @@ async function uploadFile() {
     // Завершение загрузки
     isUploading = false;
     
-    setTimeout(() => {
-        uploadBtn.disabled = false;
-        uploadBtn.innerHTML = '<i class="fas fa-rocket"></i> Начать загрузку';
-        
-        // Скрываем прогресс через 3 секунды
-        setTimeout(() => {
-            progressContainer.style.display = 'none';
-            progressContainer.innerHTML = '';
-        }, 3000);
-        
-        // Обновляем список файлов
-        loadFiles();
-        
-        // Очищаем выбранные файлы
-        selectedFiles = [];
-        updateSelectedFilesUI();
-        
-        // Показываем результат
-        if (uploadErrors === 0) {
-            showToast(`Все ${uploadSuccess} файлов успешно загружены!`, 'success');
-        } else if (uploadSuccess === 0) {
-            showToast('Не удалось загрузить ни одного файла', 'error');
-        } else {
-            showToast(`Загружено ${uploadSuccess} из ${progressBars.length} файлов`, 'warning');
-        }
-        
-    }, 1000);
-}
-
-// 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ ЗАГРУЗКИ СПИСКА ФАЙЛОВ
-async function loadFiles() {
-    console.log("📂 Загрузка списка файлов...");
+    // Обновляем UI
+    document.querySelectorAll('[id*="upload"], [id*="start-upload"]').forEach(btn => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-rocket"></i> Начать загрузку';
+    });
     
-    const filesList = document.getElementById('files-list');
-    const loading = document.getElementById('loading');
-    const totalFiles = document.getElementById('total-files');
-    const totalSizeStats = document.getElementById('total-size-stats');
+    // Обновляем данные NCC
+    await Promise.all([loadNCCData(), loadNCCFiles()]);
     
-    if (!filesList || !loading) {
-        console.error("❌ Элементы списка файлов не найдены");
-        return;
+    // Очищаем выбранные файлы
+    selectedFiles = [];
+    updateSelectedFilesUI();
+    
+    // Показываем результат
+    if (errorCount === 0) {
+        showToast(`Успешно загружено ${successCount} файлов в NCC`, 'success');
+    } else if (successCount === 0) {
+        showToast('Не удалось загрузить файлы', 'error');
+    } else {
+        showToast(`Загружено ${successCount} из ${successCount + errorCount} файлов`, 'warning');
     }
     
-    // Показываем загрузку
-    loading.style.display = 'flex';
-    filesList.innerHTML = '';
+    // Скрываем прогресс через 5 секунд
+    if (progressArea) {
+        setTimeout(() => {
+            progressArea.style.display = 'none';
+            progressArea.innerHTML = '';
+        }, 5000);
+    }
+}
+
+// ====================
+// ЗАГРУЗКА ДАННЫХ NCC
+// ====================
+async function loadNCCData() {
+    console.log("📊 NCC: Загрузка данных...");
     
     try {
         if (!storageRef) {
-            throw new Error('Storage не инициализирован');
+            throw new Error('Хранилище не инициализировано');
         }
         
-        // Получаем список файлов
-        const listResult = await storageRef.listAll();
-        console.log(`📁 Найдено ${listResult.items.length} файлов`);
+        // Загружаем список файлов
+        const result = await storageRef.listAll();
+        nccFiles = [];
         
-        currentFiles = [];
-        
-        // Получаем метаданные для каждого файла
-        for (const itemRef of listResult.items) {
+        // Получаем информацию о файлах
+        for (const itemRef of result.items) {
             try {
                 const metadata = await itemRef.getMetadata();
                 const downloadURL = await itemRef.getDownloadURL();
                 
-                // Извлекаем оригинальное имя файла
-                const fileName = itemRef.name;
-                let originalName = fileName;
-                
-                // Пытаемся извлечь оригинальное имя из имени файла
-                const parts = fileName.split('_');
-                if (parts.length >= 3) {
-                    // Пропускаем timestamp и random часть
-                    originalName = parts.slice(2).join('_');
-                }
-                
-                currentFiles.push({
+                nccFiles.push({
                     name: itemRef.name,
-                    originalName: originalName,
+                    originalName: extractOriginalName(itemRef.name),
                     size: metadata.size,
                     time: metadata.timeCreated,
                     url: downloadURL,
-                    fullPath: itemRef.fullPath
+                    ref: itemRef
                 });
-                
             } catch (error) {
-                console.error('Ошибка загрузки метаданных для', itemRef.name, error);
+                console.warn('Не удалось получить метаданные для:', itemRef.name, error);
             }
         }
         
+        // Обновляем статистику
+        updateNCCStats();
+        updateRecentFiles();
+        
+        console.log(`✅ NCC: Загружено ${nccFiles.length} файлов`);
+        return nccFiles;
+        
+    } catch (error) {
+        console.error('❌ NCC: Ошибка загрузки данных:', error);
+        showToast('Ошибка загрузки данных NCC', 'error');
+        throw error;
+    }
+}
+
+async function loadNCCFiles() {
+    const filesContainer = document.getElementById('all-files');
+    const loadingElement = document.getElementById('files-loading');
+    
+    if (!filesContainer || !loadingElement) return;
+    
+    // Показываем загрузку
+    filesContainer.style.opacity = '0.5';
+    loadingElement.style.display = 'flex';
+    
+    try {
+        // Если файлы еще не загружены, загружаем их
+        if (nccFiles.length === 0) {
+            await loadNCCData();
+        }
+        
         // Сортируем файлы
-        const sortType = document.getElementById('sort-select')?.value || 'newest';
-        currentFiles.sort((a, b) => {
+        const sortType = document.getElementById('sort-files')?.value || 'newest';
+        const sortedFiles = [...nccFiles].sort((a, b) => {
             switch(sortType) {
                 case 'newest': return new Date(b.time) - new Date(a.time);
                 case 'oldest': return new Date(a.time) - new Date(b.time);
@@ -591,69 +648,246 @@ async function loadFiles() {
             }
         });
         
-        // Обновляем статистику
-        const totalSizeBytes = currentFiles.reduce((sum, file) => sum + file.size, 0);
-        if (totalFiles) totalFiles.textContent = currentFiles.length;
-        if (totalSizeStats) totalSizeStats.textContent = formatFileSize(totalSizeBytes);
-        
         // Отображаем файлы
-        if (currentFiles.length === 0) {
-            filesList.innerHTML = `
+        if (sortedFiles.length === 0) {
+            filesContainer.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-icon">
                         <i class="fas fa-cloud"></i>
                     </div>
-                    <h3>Облако пустое</h3>
-                    <p>Перетащите файлы в область загрузки</p>
+                    <h3>Хранилище NCC пустое</h3>
+                    <p>Начните загрузку файлов</p>
                 </div>
             `;
         } else {
-            filesList.innerHTML = currentFiles.map(file => `
-                <div class="file-item">
-                    <div class="file-icon">${getFileIcon(file.originalName)}</div>
-                    <div class="file-info">
+            filesContainer.innerHTML = sortedFiles.map(file => `
+                <div class="file-card">
+                    <div class="file-icon">
+                        ${getFileIcon(file.originalName)}
+                    </div>
+                    <div class="file-details">
                         <div class="file-name" title="${file.originalName}">${file.originalName}</div>
-                        <div class="file-meta">
+                        <div class="file-info">
                             <span>${formatFileSize(file.size)}</span>
                             <span>•</span>
                             <span>${formatDate(file.time)}</span>
                         </div>
                     </div>
                     <div class="file-actions">
-                        <button class="btn-action btn-download" onclick="downloadFile('${encodeURIComponent(file.url)}', '${encodeURIComponent(file.originalName)}')" title="Скачать">
-                            <i class="fas fa-download"></i>
+                        <button class="file-action-btn download-btn" onclick="downloadNCCFile('${encodeURIComponent(file.url)}', '${encodeURIComponent(file.originalName)}')">
+                            <i class="fas fa-download"></i> Скачать
                         </button>
-                        <button class="btn-action btn-delete" onclick="deleteFile('${encodeURIComponent(file.name)}')" title="Удалить">
-                            <i class="fas fa-trash"></i>
+                        <button class="file-action-btn delete-btn" onclick="deleteNCCFile('${encodeURIComponent(file.name)}')">
+                            <i class="fas fa-trash"></i> Удалить
                         </button>
                     </div>
                 </div>
             `).join('');
         }
         
-        console.log(`✅ Загружено ${currentFiles.length} файлов`);
-        
     } catch (error) {
-        console.error('❌ Ошибка загрузки файлов:', error);
-        filesList.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon" style="color: #ef4444;">
+        console.error('❌ NCC: Ошибка отображения файлов:', error);
+        filesContainer.innerHTML = `
+            <div class="empty-state error">
+                <div class="empty-icon">
                     <i class="fas fa-exclamation-triangle"></i>
                 </div>
                 <h3>Ошибка загрузки</h3>
-                <p>${error.message || 'Не удалось подключиться к облаку'}</p>
-                <button onclick="loadFiles()" class="btn" style="margin-top: 20px; background: rgba(99, 102, 241, 0.2); color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.3);">
+                <p>${error.message || 'Не удалось загрузить файлы'}</p>
+                <button onclick="loadNCCFiles()" class="action-btn" style="margin-top: 15px;">
                     <i class="fas fa-redo"></i> Повторить
                 </button>
             </div>
         `;
-        showToast('Ошибка загрузки файлов: ' + error.message, 'error');
     } finally {
-        loading.style.display = 'none';
+        filesContainer.style.opacity = '1';
+        loadingElement.style.display = 'none';
     }
 }
 
-// Вспомогательные функции
+// ====================
+// ОБНОВЛЕНИЕ СТАТИСТИКИ
+// ====================
+function updateNCCStats() {
+    // Общий размер
+    const totalSize = nccFiles.reduce((sum, file) => sum + file.size, 0);
+    const totalFiles = nccFiles.length;
+    
+    // Обновляем элементы
+    const totalStorage = document.getElementById('total-storage');
+    const totalFilesElement = document.getElementById('total-files');
+    const filesCount = document.getElementById('files-count');
+    const storageStatus = document.getElementById('storage-status');
+    
+    if (totalStorage) totalStorage.textContent = formatFileSize(totalSize);
+    if (totalFilesElement) totalFilesElement.textContent = totalFiles;
+    if (filesCount) filesCount.textContent = `${totalFiles} файлов`;
+    if (storageStatus) storageStatus.textContent = formatFileSize(totalSize);
+    
+    // Обновляем график использования
+    updateStorageChart(totalSize);
+}
+
+function updateRecentFiles() {
+    const recentList = document.getElementById('recent-files-list');
+    if (!recentList) return;
+    
+    // Берем 5 последних файлов
+    const recentFiles = [...nccFiles]
+        .sort((a, b) => new Date(b.time) - new Date(a.time))
+        .slice(0, 5);
+    
+    if (recentFiles.length === 0) {
+        recentList.innerHTML = `
+            <div class="empty-mini">
+                <i class="fas fa-file"></i>
+                <span>Нет недавних файлов</span>
+            </div>
+        `;
+    } else {
+        recentList.innerHTML = recentFiles.map(file => `
+            <div class="file-item" onclick="downloadNCCFile('${encodeURIComponent(file.url)}', '${encodeURIComponent(file.originalName)}')">
+                <div class="file-icon">
+                    ${getFileIcon(file.originalName)}
+                </div>
+                <div class="file-details">
+                    <div class="file-name" title="${file.originalName}">${file.originalName}</div>
+                    <div class="file-info">
+                        <span>${formatDate(file.time)}</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+}
+
+function updateStorageChart(usedSize) {
+    // Для демо - считаем что общий размер 10GB
+    const totalSize = 10 * 1024 * 1024 * 1024; // 10GB
+    const percent = Math.min((usedSize / totalSize) * 100, 100);
+    
+    const fillElement = document.getElementById('storage-fill');
+    const percentElement = document.getElementById('storage-percent');
+    const usedElement = document.getElementById('used-storage');
+    const freeElement = document.getElementById('free-storage');
+    
+    if (fillElement) {
+        fillElement.style.background = `conic-gradient(var(--ncc-primary) ${percent}%, transparent ${percent}% 100%)`;
+    }
+    
+    if (percentElement) percentElement.textContent = `${Math.round(percent)}%`;
+    if (usedElement) usedElement.textContent = formatFileSize(usedSize);
+    if (freeElement) freeElement.textContent = formatFileSize(totalSize - usedSize);
+}
+
+function updateActivity() {
+    const activityList = document.getElementById('activity-list');
+    if (!activityList) return;
+    
+    // Для демо - создаем тестовые события
+    const activities = [
+        { time: 'Только что', action: 'Система NCC запущена', icon: 'fa-play', color: 'success' },
+        { time: '2 мин назад', action: 'Загружено 3 файла', icon: 'fa-cloud-upload-alt', color: 'primary' },
+        { time: '15 мин назад', action: 'Удален файл "report.pdf"', icon: 'fa-trash', color: 'danger' },
+        { time: '1 час назад', action: 'Вход администратора', icon: 'fa-user-shield', color: 'warning' },
+        { time: '2 часа назад', action: 'Системное обновление', icon: 'fa-sync-alt', color: 'info' }
+    ];
+    
+    activityList.innerHTML = activities.map(act => `
+        <div class="activity-item">
+            <div class="activity-icon ${act.color}">
+                <i class="fas ${act.icon}"></i>
+            </div>
+            <div class="activity-content">
+                <div class="activity-text">${act.action}</div>
+                <div class="activity-time">${act.time}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ====================
+// РАБОТА С ФАЙЛАМИ
+// ====================
+function downloadNCCFile(url, filename) {
+    try {
+        const decodedUrl = decodeURIComponent(url);
+        const decodedFilename = decodeURIComponent(filename);
+        
+        const a = document.createElement('a');
+        a.href = decodedUrl;
+        a.download = decodedFilename;
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        
+        setTimeout(() => {
+            document.body.removeChild(a);
+        }, 100);
+        
+        showToast(`Скачивание: ${decodedFilename}`, 'success');
+        
+        // Добавляем в историю активности
+        addActivity(`Скачан файл: ${decodedFilename}`);
+        
+    } catch (error) {
+        console.error('Ошибка скачивания:', error);
+        showToast('Ошибка при скачивании файла', 'error');
+    }
+}
+
+async function deleteNCCFile(filename) {
+    const decodedName = decodeURIComponent(filename);
+    const originalName = extractOriginalName(decodedName);
+    
+    showModal(
+        'Удаление файла',
+        `Вы уверены, что хотите удалить файл <strong>"${originalName}"</strong> из NCC?`,
+        [
+            {
+                text: 'Отмена',
+                class: 'modal-btn-secondary',
+                action: () => hideModal()
+            },
+            {
+                text: 'Удалить',
+                class: 'modal-btn-danger',
+                action: async () => {
+                    try {
+                        await storageRef.child(decodedName).delete();
+                        showToast('Файл удален из NCC', 'success');
+                        
+                        // Обновляем данные
+                        await loadNCCData();
+                        await loadNCCFiles();
+                        
+                        // Добавляем в историю активности
+                        addActivity(`Удален файл: ${originalName}`);
+                        
+                    } catch (error) {
+                        console.error('Ошибка удаления:', error);
+                        showToast('Ошибка при удалении файла', 'error');
+                    } finally {
+                        hideModal();
+                    }
+                }
+            }
+        ]
+    );
+}
+
+// ====================
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ====================
+function extractOriginalName(storedName) {
+    // Формат: ncc_timestamp_random_originalname
+    const parts = storedName.split('_');
+    if (parts.length >= 4) {
+        return parts.slice(3).join('_');
+    }
+    return storedName;
+}
+
 function getFileIcon(filename) {
     const ext = filename.split('.').pop().toLowerCase();
     const icons = {
@@ -682,108 +916,154 @@ function formatFileSize(bytes) {
 
 function formatDate(timestamp) {
     const date = new Date(timestamp);
-    return date.toLocaleDateString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+    const now = new Date();
+    const diff = now - date;
+    
+    // Сегодня
+    if (diff < 24 * 60 * 60 * 1000) {
+        return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    // Вчера
+    if (diff < 48 * 60 * 60 * 1000) {
+        return 'Вчера';
+    }
+    
+    // За последнюю неделю
+    if (diff < 7 * 24 * 60 * 60 * 1000) {
+        const days = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+        return days[date.getDay()];
+    }
+    
+    // Более недели назад
+    return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
 }
 
-// Скачивание файла
-function downloadFile(url, filename) {
-    try {
-        const decodedUrl = decodeURIComponent(url);
-        const decodedFilename = decodeURIComponent(filename);
-        
-        const a = document.createElement('a');
-        a.href = decodedUrl;
-        a.download = decodedFilename;
-        a.target = '_blank';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-            document.body.removeChild(a);
-        }, 100);
-        
-        showToast(`Скачивание: ${decodedFilename}`, 'success');
-    } catch (error) {
-        console.error('Ошибка скачивания:', error);
-        showToast('Ошибка при скачивании файла', 'error');
+function updateClock() {
+    const timeElement = document.getElementById('current-time');
+    if (!timeElement) return;
+    
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('ru-RU', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+    });
+    
+    timeElement.textContent = timeString;
+}
+
+function addActivity(text) {
+    const activityList = document.getElementById('activity-list');
+    if (!activityList) return;
+    
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    
+    const activityItem = document.createElement('div');
+    activityItem.className = 'activity-item';
+    activityItem.innerHTML = `
+        <div class="activity-icon primary">
+            <i class="fas fa-info-circle"></i>
+        </div>
+        <div class="activity-content">
+            <div class="activity-text">${text}</div>
+            <div class="activity-time">${timeString}</div>
+        </div>
+    `;
+    
+    // Добавляем в начало
+    activityList.insertBefore(activityItem, activityList.firstChild);
+    
+    // Ограничиваем количество записей
+    while (activityList.children.length > 10) {
+        activityList.removeChild(activityList.lastChild);
     }
 }
 
-// Удаление файла
-async function deleteFile(filename) {
-    const decodedFilename = decodeURIComponent(filename);
-    const displayName = decodedFilename.split('_').slice(2).join('_') || decodedFilename;
+function initializeDashboard() {
+    // Инициализируем сортировку
+    const sortSelect = document.getElementById('sort-files');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', loadNCCFiles);
+    }
     
-    showModal('Подтверждение удаления', `Удалить файл <strong>"${displayName}"</strong>?`, [
-        {
-            text: 'Отмена',
-            class: 'btn-secondary',
-            action: () => hideModal()
-        },
-        {
-            text: 'Удалить',
-            class: 'btn-danger',
-            action: async () => {
-                try {
-                    await storageRef.child(decodedFilename).delete();
-                    showToast('Файл удален', 'success');
-                    loadFiles();
-                } catch (error) {
-                    console.error('Ошибка удаления:', error);
-                    showToast('Ошибка при удалении файла', 'error');
-                } finally {
-                    hideModal();
-                }
-            }
-        }
-    ]);
+    // Инициализируем поиск
+    const searchInput = document.getElementById('search-files');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            const fileCards = document.querySelectorAll('.file-card');
+            
+            fileCards.forEach(card => {
+                const fileName = card.querySelector('.file-name').textContent.toLowerCase();
+                card.style.display = fileName.includes(term) ? 'block' : 'none';
+            });
+        });
+    }
 }
 
-// Вспомогательные функции UI
-function showModal(title, body, buttons = []) {
-    const modal = document.getElementById('modal');
-    const modalTitle = document.getElementById('modal-title');
-    const modalBody = document.getElementById('modal-body');
-    const modalFooter = document.getElementById('modal-footer');
+// ====================
+// UI ФУНКЦИИ
+// ====================
+function showModal(title, body, buttons) {
+    const overlay = document.getElementById('modal-overlay');
+    const titleElement = document.getElementById('modal-title');
+    const bodyElement = document.getElementById('modal-body');
+    const footerElement = document.getElementById('modal-footer');
     
-    if (!modal || !modalTitle || !modalBody || !modalFooter) return;
+    if (!overlay || !titleElement || !bodyElement || !footerElement) return;
     
-    modalTitle.textContent = title;
-    modalBody.innerHTML = `<p>${body}</p>`;
-    modalFooter.innerHTML = '';
+    // Устанавливаем содержимое
+    titleElement.textContent = title;
+    bodyElement.innerHTML = body;
+    footerElement.innerHTML = '';
     
+    // Добавляем кнопки
     buttons.forEach(btn => {
         const button = document.createElement('button');
-        button.className = `btn ${btn.class}`;
+        button.className = `modal-btn ${btn.class}`;
         button.textContent = btn.text;
         button.onclick = btn.action;
-        modalFooter.appendChild(button);
+        footerElement.appendChild(button);
     });
     
-    modal.style.display = 'flex';
+    // Показываем модалку
+    overlay.style.display = 'flex';
+    
+    // Закрытие по клику вне модалки
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) hideModal();
+    });
+    
+    // Закрытие по Escape
+    document.addEventListener('keydown', function closeOnEscape(e) {
+        if (e.key === 'Escape') {
+            hideModal();
+            document.removeEventListener('keydown', closeOnEscape);
+        }
+    });
 }
 
 function hideModal() {
-    const modal = document.getElementById('modal');
-    if (modal) {
-        modal.style.display = 'none';
+    const overlay = document.getElementById('modal-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
     }
 }
 
 function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    
     // Удаляем старые тосты
-    const oldToasts = document.querySelectorAll('.toast');
+    const oldToasts = container.querySelectorAll('.toast');
     oldToasts.forEach(toast => {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
     });
     
-    // Создаем элемент тоста
+    // Создаем новый тост
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     
@@ -802,15 +1082,18 @@ function showToast(message, type = 'info') {
         <button class="toast-close">&times;</button>
     `;
     
-    document.body.appendChild(toast);
+    container.appendChild(toast);
     
+    // Анимация появления
     setTimeout(() => toast.classList.add('show'), 10);
     
+    // Закрытие по кнопке
     toast.querySelector('.toast-close').addEventListener('click', () => {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
     });
     
+    // Автоматическое закрытие
     setTimeout(() => {
         if (toast.parentNode) {
             toast.classList.remove('show');
@@ -819,34 +1102,12 @@ function showToast(message, type = 'info') {
     }, 5000);
 }
 
-// Закрытие модального окна
-document.querySelector('.modal-close')?.addEventListener('click', hideModal);
-document.querySelector('.modal')?.addEventListener('click', function(e) {
-    if (e.target === this) hideModal();
-});
+// ====================
+// ЭКСПОРТ ГЛОБАЛЬНЫХ ФУНКЦИЙ
+// ====================
+window.removeSelectedFile = removeSelectedFile;
+window.downloadNCCFile = downloadNCCFile;
+window.deleteNCCFile = deleteNCCFile;
+window.loadNCCFiles = loadNCCFiles;
 
-// Добавляем недостающие стили для анимаций
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-10px); }
-        75% { transform: translateX(10px); }
-    }
-    
-    @keyframes pulse {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.8; transform: scale(1.05); }
-    }
-    
-    @keyframes slideIn {
-        from { opacity: 0; transform: translateX(-20px); }
-        to { opacity: 1; transform: translateX(0); }
-    }
-`;
-document.head.appendChild(style);
-
-// Проверяем, если уже на экране облака, загружаем файлы
-if (document.getElementById('cloud-screen')?.style.display !== 'none') {
-    setTimeout(loadFiles, 500);
-}
+console.log("🚀 NCC (NeoCascadeCloud) готов к работе!");
