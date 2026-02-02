@@ -2,9 +2,9 @@
 // КОНФИГУРАЦИЯ NCC
 // ====================
 const NCC_CONFIG = {
-    PASSWORD: "JojoTop1", // Пароль администратора
+    PASSWORD: "JojoTop1",
     MAX_FILES: 10,
-    MAX_SIZE: 500 * 1024 * 1024, // 500MB
+    MAX_SIZE: 500 * 1024 * 1024,
     APP_NAME: "NeoCascadeCloud"
 };
 
@@ -19,7 +19,7 @@ const FIREBASE_CONFIG = {
 };
 
 // Инициализация Firebase
-let firebaseApp, storageRef;
+let firebaseApp, storage, storageRef;
 
 try {
     if (!firebase.apps.length) {
@@ -30,22 +30,21 @@ try {
         console.log("✅ NCC: Firebase уже инициализирован");
     }
     
-    storageRef = firebase.storage().ref();
+    storage = firebase.storage();
+    storageRef = storage.ref();
     console.log("✅ NCC: Хранилище готово");
 } catch (error) {
     console.error("❌ NCC: Ошибка инициализации Firebase:", error);
     showToast("Ошибка подключения к NCC", "error");
 }
 
-// ====================
-// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ NCC
-// ====================
+// Глобальные переменные
 let nccFiles = [];
 let selectedFiles = [];
 let isUploading = false;
 
 // ====================
-// ИНИЦИАЛИЗАЦИЯ NCC
+// ИНИЦИАЛИЗАЦИЯ
 // ====================
 document.addEventListener('DOMContentLoaded', function() {
     console.log("🚀 NCC: Запуск системы...");
@@ -56,7 +55,6 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeDashboard();
     updateClock();
     
-    // Запускаем обновление времени
     setInterval(updateClock, 1000);
     
     console.log("✅ NCC: Система инициализирована");
@@ -70,25 +68,18 @@ function initializeLockScreen() {
     const unlockBtn = document.getElementById('unlock-btn');
     const toggleBtn = document.getElementById('toggle-password');
     
-    if (!passwordInput || !unlockBtn || !toggleBtn) {
-        console.error("❌ NCC: Элементы блокировки не найдены");
-        return;
-    }
+    if (!passwordInput || !unlockBtn || !toggleBtn) return;
     
-    // Фокус на поле пароля
     setTimeout(() => passwordInput.focus(), 500);
     
-    // Показать/скрыть пароль
     toggleBtn.addEventListener('click', function() {
         const type = passwordInput.type === 'password' ? 'text' : 'password';
         passwordInput.type = type;
         this.innerHTML = `<i class="fas fa-${type === 'password' ? 'eye' : 'eye-slash'}"></i>`;
     });
     
-    // Разблокировка по кнопке
     unlockBtn.addEventListener('click', unlockNCC);
     
-    // Разблокировка по Enter
     passwordInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -108,7 +99,6 @@ function unlockNCC() {
     }
     
     if (input.value === NCC_CONFIG.PASSWORD) {
-        // Успешная разблокировка
         unlockBtn.disabled = true;
         unlockBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Доступ разрешен';
         
@@ -117,7 +107,6 @@ function unlockNCC() {
         errorElement.style.background = "rgba(56, 176, 0, 0.1)";
         errorElement.style.border = "1px solid rgba(56, 176, 0, 0.3)";
         
-        // Анимация перехода
         setTimeout(() => {
             document.getElementById('lock-screen').classList.remove('active');
             document.getElementById('lock-screen').style.opacity = '0';
@@ -126,10 +115,8 @@ function unlockNCC() {
                 document.getElementById('lock-screen').style.display = 'none';
                 document.getElementById('main-app').style.display = 'block';
                 
-                // Загружаем данные
                 loadNCCData();
                 
-                // Показываем приветствие
                 setTimeout(() => {
                     showToast(`Добро пожаловать в ${NCC_CONFIG.APP_NAME}!`, "success");
                 }, 500);
@@ -138,7 +125,6 @@ function unlockNCC() {
     } else {
         showLockError("Неверный пароль", errorElement);
         
-        // Анимация ошибки
         input.style.animation = 'none';
         setTimeout(() => {
             input.style.animation = 'shakeError 0.5s ease';
@@ -159,23 +145,19 @@ function showLockError(message, element) {
 // НАВИГАЦИЯ
 // ====================
 function initializeNavigation() {
-    // Навигация по разделам
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', function() {
             const view = this.dataset.view;
             
-            // Обновляем активный элемент
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
             this.classList.add('active');
             
-            // Показываем выбранный раздел
             document.querySelectorAll('.view-section').forEach(section => {
                 section.classList.remove('active');
             });
             
             document.getElementById(`${view}-view`).classList.add('active');
             
-            // Загружаем данные для раздела
             switch(view) {
                 case 'files':
                     loadNCCFiles();
@@ -187,7 +169,6 @@ function initializeNavigation() {
         });
     });
     
-    // Выход из системы
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function() {
@@ -206,7 +187,6 @@ function initializeNavigation() {
                         action: () => {
                             hideModal();
                             
-                            // Плавный выход
                             document.getElementById('main-app').style.opacity = '0';
                             
                             setTimeout(() => {
@@ -227,7 +207,6 @@ function initializeNavigation() {
         });
     }
     
-    // Обновление всех данных
     const refreshBtn = document.getElementById('refresh-all');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', function() {
@@ -247,10 +226,10 @@ function initializeNavigation() {
 }
 
 // ====================
-// ЗАГРУЗКА ФАЙЛОВ - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// ЗАГРУЗКА ФАЙЛОВ
 // ====================
 function initializeFileUpload() {
-    // Быстрая загрузка (dashboard)
+    // Быстрая загрузка
     const quickDrop = document.getElementById('quick-drop');
     const quickInput = document.getElementById('quick-input');
     
@@ -304,19 +283,15 @@ function setupDropzone(dropzone, fileInput) {
     });
     
     dropzone.addEventListener('drop', handleDrop, false);
-    
-    // КЛИК ПО ЗОНЕ: открываем окно выбора файлов
     dropzone.addEventListener('click', function(e) {
         if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
             fileInput.click();
         }
     });
     
-    // ИЗМЕНЕНИЕ INPUT: обрабатываем выбранные файлы
     fileInput.addEventListener('change', function(e) {
         if (this.files && this.files.length > 0) {
             handleFiles(this.files);
-            // НЕ сбрасываем value - позволяем добавлять файлы при повторном клике
         }
     });
 }
@@ -337,25 +312,21 @@ function handleDrop(e) {
 function handleFiles(files) {
     if (!files || files.length === 0) return;
     
-    // Ограничения
     if (files.length > NCC_CONFIG.MAX_FILES) {
         showToast(`Максимум ${NCC_CONFIG.MAX_FILES} файлов за раз`, 'warning');
         return;
     }
     
-    // Проверка размера и добавление без дубликатов
     let addedCount = 0;
     let skippedCount = 0;
     
     Array.from(files).forEach(file => {
-        // Проверка размера
         if (file.size > NCC_CONFIG.MAX_SIZE) {
             showToast(`Файл ${file.name} превышает 500MB`, 'warning');
             skippedCount++;
             return;
         }
         
-        // Проверяем, нет ли уже такого файла (по имени, размеру и дате изменения)
         const isDuplicate = selectedFiles.some(existingFile => 
             existingFile.name === file.name && 
             existingFile.size === file.size &&
@@ -370,10 +341,8 @@ function handleFiles(files) {
         }
     });
     
-    // Обновляем UI
     updateSelectedFilesUI();
     
-    // Показываем сообщение о результате
     if (addedCount > 0) {
         showToast(`Добавлено ${addedCount} файлов${skippedCount > 0 ? `, ${skippedCount} пропущено` : ''}`, 'success');
     }
@@ -388,13 +357,11 @@ function updateSelectedFilesUI() {
     
     if (!selectedList) return;
     
-    // Обновляем статистику
     const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0);
     
     if (totalSpan) totalSpan.textContent = `${selectedFiles.length} файлов`;
     if (sizeSpan) sizeSpan.textContent = formatFileSize(totalSize);
     
-    // Обновляем список
     if (selectedFiles.length === 0) {
         selectedList.innerHTML = `
             <div class="empty-mini">
@@ -423,7 +390,6 @@ function updateSelectedFilesUI() {
         `).join('');
     }
     
-    // Обновляем кнопки
     const isEnabled = selectedFiles.length > 0 && !isUploading;
     if (startBtn) {
         startBtn.disabled = !isEnabled;
@@ -458,9 +424,11 @@ function clearSelectedFiles() {
 }
 
 // ====================
-// ЗАГРУЗКА ФАЙЛОВ В NCC
+// 🔥 ИСПРАВЛЕННАЯ ЗАГРУЗКА ФАЙЛОВ В FIREBASE
 // ====================
 async function uploadFilesToNCC() {
+    console.log("📤 Начинаем загрузку файлов...");
+    
     if (selectedFiles.length === 0) {
         showToast('Нет файлов для загрузки', 'warning');
         return;
@@ -479,13 +447,13 @@ async function uploadFilesToNCC() {
     isUploading = true;
     const progressArea = document.getElementById('upload-progress-area');
     
-    // Настраиваем UI для загрузки
+    // Блокируем кнопки
     document.querySelectorAll('[id*="upload"], [id*="start-upload"]').forEach(btn => {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
     });
     
-    // Показываем область прогресса
+    // Показываем прогресс
     if (progressArea) {
         progressArea.style.display = 'block';
         progressArea.innerHTML = `
@@ -496,122 +464,89 @@ async function uploadFilesToNCC() {
     
     let successCount = 0;
     let errorCount = 0;
+    const uploadPromises = [];
     
-    // Загружаем файлы последовательно
+    // Создаем прогресс-бары для каждого файла
+    selectedFiles.forEach((file, index) => {
+        const progressItem = document.createElement('div');
+        progressItem.className = 'progress-item';
+        progressItem.innerHTML = `
+            <div class="progress-header">
+                <span class="progress-name" title="${file.name}">${file.name}</span>
+                <span class="progress-percent" id="percent-${index}">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-${index}" style="width: 0%"></div>
+            </div>
+        `;
+        
+        if (progressArea) {
+            progressArea.querySelector('.upload-progress-list').appendChild(progressItem);
+        }
+    });
+    
+    // Загружаем ВСЕ файлы параллельно
     for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
-        const fileName = `ncc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${file.name}`;
+        const fileName = `ncc_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 9)}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
         
-        try {
-            const fileRef = storageRef.child(fileName);
-            
-            // Создаем элемент прогресса
-            const progressItem = document.createElement('div');
-            progressItem.className = 'progress-item';
-            progressItem.innerHTML = `
-                <div class="progress-header">
-                    <span class="progress-name" title="${file.name}">${file.name}</span>
-                    <span class="progress-percent">0%</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: 0%"></div>
-                </div>
-            `;
-            
-            if (progressArea) {
-                progressArea.querySelector('.upload-progress-list').appendChild(progressItem);
-            }
-            
-            const progressPercent = progressItem.querySelector('.progress-percent');
-            const progressFill = progressItem.querySelector('.progress-fill');
-            
-            // Загружаем файл
-            await new Promise((resolve, reject) => {
-                const uploadTask = fileRef.put(file);
-                
-                uploadTask.on('state_changed',
-                    (snapshot) => {
-                        // Обновляем прогресс
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        const rounded = Math.round(progress);
-                        
-                        progressPercent.textContent = `${rounded}%`;
-                        progressFill.style.width = `${progress}%`;
-                        
-                        // Меняем цвет
-                        if (progress < 30) {
-                            progressFill.style.background = 'linear-gradient(90deg, #ff0054, #ffbe0b)';
-                        } else if (progress < 70) {
-                            progressFill.style.background = 'linear-gradient(90deg, #ffbe0b, #00b4d8)';
-                        } else {
-                            progressFill.style.background = 'linear-gradient(90deg, #00b4d8, #38b000)';
-                        }
-                    },
-                    (error) => {
-                        console.error('Ошибка загрузки:', error);
-                        progressPercent.textContent = '❌ Ошибка';
-                        progressFill.style.background = '#ff0054';
-                        progressFill.style.width = '100%';
+        console.log(`📁 Загружаем: ${file.name} -> ${fileName}`);
+        
+        uploadPromises.push(
+            uploadSingleFile(file, fileName, i)
+                .then(result => {
+                    if (result.success) {
+                        successCount++;
+                        updateProgress(i, 100, '✅ Загружен', '#38b000');
+                    } else {
                         errorCount++;
-                        resolve(); // Продолжаем несмотря на ошибку
-                    },
-                    async () => {
-                        try {
-                            // Получаем URL загруженного файла
-                            await fileRef.getDownloadURL();
-                            progressPercent.textContent = '✅ Загружен';
-                            progressFill.style.background = 'linear-gradient(90deg, #00b4d8, #38b000)';
-                            progressFill.style.width = '100%';
-                            successCount++;
-                            resolve();
-                        } catch (urlError) {
-                            console.error('Ошибка получения URL:', urlError);
-                            progressPercent.textContent = '⚠️ Загружен без URL';
-                            progressFill.style.background = '#ffbe0b';
-                            errorCount++;
-                            resolve();
-                        }
+                        updateProgress(i, 100, '❌ Ошибка', '#ff0054');
+                        console.error(`Ошибка загрузки ${file.name}:`, result.error);
                     }
-                );
-            });
-            
-        } catch (error) {
-            console.error(`Ошибка загрузки файла ${file.name}:`, error);
-            errorCount++;
-        }
-        
-        // Небольшая пауза между файлами
-        if (i < selectedFiles.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
+                })
+                .catch(error => {
+                    errorCount++;
+                    updateProgress(i, 100, '❌ Ошибка', '#ff0054');
+                    console.error(`Неожиданная ошибка ${file.name}:`, error);
+                })
+        );
     }
     
-    // Завершение загрузки
+    // Ждем завершения всех загрузок
+    try {
+        await Promise.all(uploadPromises);
+        console.log(`✅ Загрузка завершена: ${successCount} успешно, ${errorCount} с ошибками`);
+    } catch (error) {
+        console.error('Ошибка при ожидании загрузок:', error);
+    }
+    
+    // Завершение
     isUploading = false;
     
-    // Обновляем UI
+    // Разблокируем кнопки
     document.querySelectorAll('[id*="upload"], [id*="start-upload"]').forEach(btn => {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-rocket"></i> Начать загрузку';
     });
     
-    // Обновляем данные NCC
+    // Обновляем данные
     await Promise.all([loadNCCData(), loadNCCFiles()]);
     
-    // Очищаем выбранные файлы
+    // Очищаем список
+    const uploadedCount = selectedFiles.length;
     selectedFiles = [];
     updateSelectedFilesUI();
     
-    // Показываем результат
+    // Результат
     if (errorCount === 0) {
         showToast(`Успешно загружено ${successCount} файлов в NCC`, 'success');
     } else if (successCount === 0) {
-        showToast('Не удалось загрузить файлы', 'error');
+        showToast('Не удалось загрузить ни одного файла', 'error');
     } else {
-        showToast(`Загружено ${successCount} из ${successCount + errorCount} файлов`, 'warning');
+        showToast(`Загружено ${successCount} из ${uploadedCount} файлов`, 'warning');
     }
     
-    // Скрываем прогресс через 5 секунд
+    // Скрываем прогресс
     if (progressArea) {
         setTimeout(() => {
             progressArea.style.display = 'none';
@@ -620,49 +555,108 @@ async function uploadFilesToNCC() {
     }
 }
 
+// Функция загрузки ОДНОГО файла
+async function uploadSingleFile(file, fileName, index) {
+    return new Promise((resolve) => {
+        try {
+            const fileRef = storageRef.child(fileName);
+            const uploadTask = fileRef.put(file);
+            
+            uploadTask.on('state_changed',
+                (snapshot) => {
+                    // Прогресс
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    updateProgress(index, progress, `${Math.round(progress)}%`, getProgressColor(progress));
+                },
+                (error) => {
+                    // Ошибка загрузки
+                    console.error(`Ошибка загрузки ${file.name}:`, error);
+                    resolve({ success: false, error: error.message });
+                },
+                async () => {
+                    try {
+                        // Успешная загрузка - получаем URL
+                        const downloadURL = await fileRef.getDownloadURL();
+                        console.log(`✅ Файл загружен: ${fileName} -> ${downloadURL}`);
+                        resolve({ success: true, url: downloadURL });
+                    } catch (urlError) {
+                        console.error(`Ошибка получения URL для ${file.name}:`, urlError);
+                        resolve({ success: false, error: 'Не удалось получить URL' });
+                    }
+                }
+            );
+        } catch (error) {
+            console.error(`Ошибка начала загрузки ${file.name}:`, error);
+            resolve({ success: false, error: error.message });
+        }
+    });
+}
+
+function updateProgress(index, progress, text, color) {
+    const percentElement = document.getElementById(`percent-${index}`);
+    const fillElement = document.getElementById(`progress-${index}`);
+    
+    if (percentElement) percentElement.textContent = text;
+    if (fillElement) {
+        fillElement.style.width = `${progress}%`;
+        fillElement.style.background = color;
+    }
+}
+
+function getProgressColor(progress) {
+    if (progress < 30) return 'linear-gradient(90deg, #ff0054, #ffbe0b)';
+    if (progress < 70) return 'linear-gradient(90deg, #ffbe0b, #00b4d8)';
+    return 'linear-gradient(90deg, #00b4d8, #38b000)';
+}
+
 // ====================
-// ЗАГРУЗКА ДАННЫХ NCC
+// ЗАГРУЗКА ДАННЫХ
 // ====================
 async function loadNCCData() {
-    console.log("📊 NCC: Загрузка данных...");
+    console.log("📊 Загружаем данные из Firebase...");
     
     try {
         if (!storageRef) {
             throw new Error('Хранилище не инициализировано');
         }
         
-        // Загружаем список файлов
         const result = await storageRef.listAll();
+        console.log(`📁 Найдено ${result.items.length} файлов в Firebase`);
+        
         nccFiles = [];
         
         // Получаем информацию о файлах
-        for (const itemRef of result.items) {
+        const promises = result.items.map(async (itemRef) => {
             try {
                 const metadata = await itemRef.getMetadata();
                 const downloadURL = await itemRef.getDownloadURL();
                 
-                nccFiles.push({
+                return {
                     name: itemRef.name,
                     originalName: extractOriginalName(itemRef.name),
                     size: metadata.size,
                     time: metadata.timeCreated,
                     url: downloadURL,
                     ref: itemRef
-                });
+                };
             } catch (error) {
-                console.warn('Не удалось получить метаданные для:', itemRef.name, error);
+                console.warn('⚠️ Не удалось получить метаданные для:', itemRef.name, error);
+                return null;
             }
-        }
+        });
+        
+        const files = await Promise.all(promises);
+        nccFiles = files.filter(file => file !== null);
         
         // Обновляем статистику
         updateNCCStats();
         updateRecentFiles();
         
-        console.log(`✅ NCC: Загружено ${nccFiles.length} файлов`);
+        console.log(`✅ Загружено ${nccFiles.length} файлов`);
         return nccFiles;
         
     } catch (error) {
-        console.error('❌ NCC: Ошибка загрузки данных:', error);
+        console.error('❌ Ошибка загрузки данных:', error);
         showToast('Ошибка загрузки данных NCC', 'error');
         throw error;
     }
@@ -674,17 +668,14 @@ async function loadNCCFiles() {
     
     if (!filesContainer || !loadingElement) return;
     
-    // Показываем загрузку
     filesContainer.style.opacity = '0.5';
     loadingElement.style.display = 'flex';
     
     try {
-        // Если файлы еще не загружены, загружаем их
         if (nccFiles.length === 0) {
             await loadNCCData();
         }
         
-        // Сортируем файлы
         const sortType = document.getElementById('sort-files')?.value || 'newest';
         const sortedFiles = [...nccFiles].sort((a, b) => {
             switch(sortType) {
@@ -696,7 +687,6 @@ async function loadNCCFiles() {
             }
         });
         
-        // Отображаем файлы
         if (sortedFiles.length === 0) {
             filesContainer.innerHTML = `
                 <div class="empty-state">
@@ -734,7 +724,7 @@ async function loadNCCFiles() {
         }
         
     } catch (error) {
-        console.error('❌ NCC: Ошибка отображения файлов:', error);
+        console.error('❌ Ошибка отображения файлов:', error);
         filesContainer.innerHTML = `
             <div class="empty-state error">
                 <div class="empty-icon">
@@ -754,14 +744,12 @@ async function loadNCCFiles() {
 }
 
 // ====================
-// ОБНОВЛЕНИЕ СТАТИСТИКИ
+// СТАТИСТИКА
 // ====================
 function updateNCCStats() {
-    // Общий размер
     const totalSize = nccFiles.reduce((sum, file) => sum + file.size, 0);
     const totalFiles = nccFiles.length;
     
-    // Обновляем элементы
     const totalStorage = document.getElementById('total-storage');
     const totalFilesElement = document.getElementById('total-files');
     const filesCount = document.getElementById('files-count');
@@ -772,7 +760,6 @@ function updateNCCStats() {
     if (filesCount) filesCount.textContent = `${totalFiles} файлов`;
     if (storageStatus) storageStatus.textContent = formatFileSize(totalSize);
     
-    // Обновляем график использования
     updateStorageChart(totalSize);
 }
 
@@ -780,7 +767,6 @@ function updateRecentFiles() {
     const recentList = document.getElementById('recent-files-list');
     if (!recentList) return;
     
-    // Берем 5 последних файлов
     const recentFiles = [...nccFiles]
         .sort((a, b) => new Date(b.time) - new Date(a.time))
         .slice(0, 5);
@@ -810,8 +796,7 @@ function updateRecentFiles() {
 }
 
 function updateStorageChart(usedSize) {
-    // Для демо - считаем что общий размер 10GB
-    const totalSize = 10 * 1024 * 1024 * 1024; // 10GB
+    const totalSize = 10 * 1024 * 1024 * 1024;
     const percent = Math.min((usedSize / totalSize) * 100, 100);
     
     const fillElement = document.getElementById('storage-fill');
@@ -832,7 +817,6 @@ function updateActivity() {
     const activityList = document.getElementById('activity-list');
     if (!activityList) return;
     
-    // Для демо - создаем тестовые события
     const activities = [
         { time: 'Только что', action: 'Система NCC запущена', icon: 'fa-play', color: 'success' },
         { time: '2 мин назад', action: 'Загружено 3 файла', icon: 'fa-cloud-upload-alt', color: 'primary' },
@@ -874,8 +858,6 @@ function downloadNCCFile(url, filename) {
         }, 100);
         
         showToast(`Скачивание: ${decodedFilename}`, 'success');
-        
-        // Добавляем в историю активности
         addActivity(`Скачан файл: ${decodedFilename}`);
         
     } catch (error) {
@@ -890,7 +872,7 @@ async function deleteNCCFile(filename) {
     
     showModal(
         'Удаление файла',
-        `Вы уверены, что хотите удалить файл <strong>"${originalName}"</strong> из NCC?`,
+        `Удалить файл <strong>"${originalName}"</strong> из NCC?`,
         [
             {
                 text: 'Отмена',
@@ -905,11 +887,9 @@ async function deleteNCCFile(filename) {
                         await storageRef.child(decodedName).delete();
                         showToast('Файл удален из NCC', 'success');
                         
-                        // Обновляем данные
                         await loadNCCData();
                         await loadNCCFiles();
                         
-                        // Добавляем в историю активности
                         addActivity(`Удален файл: ${originalName}`);
                         
                     } catch (error) {
@@ -928,7 +908,6 @@ async function deleteNCCFile(filename) {
 // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 // ====================
 function extractOriginalName(storedName) {
-    // Формат: ncc_timestamp_random_originalname
     const parts = storedName.split('_');
     if (parts.length >= 4) {
         return parts.slice(3).join('_');
@@ -967,23 +946,19 @@ function formatDate(timestamp) {
     const now = new Date();
     const diff = now - date;
     
-    // Сегодня
     if (diff < 24 * 60 * 60 * 1000) {
         return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     }
     
-    // Вчера
     if (diff < 48 * 60 * 60 * 1000) {
         return 'Вчера';
     }
     
-    // За последнюю неделю
     if (diff < 7 * 24 * 60 * 60 * 1000) {
         const days = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
         return days[date.getDay()];
     }
     
-    // Более недели назад
     return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
 }
 
@@ -1020,23 +995,19 @@ function addActivity(text) {
         </div>
     `;
     
-    // Добавляем в начало
     activityList.insertBefore(activityItem, activityList.firstChild);
     
-    // Ограничиваем количество записей
     while (activityList.children.length > 10) {
         activityList.removeChild(activityList.lastChild);
     }
 }
 
 function initializeDashboard() {
-    // Инициализируем сортировку
     const sortSelect = document.getElementById('sort-files');
     if (sortSelect) {
         sortSelect.addEventListener('change', loadNCCFiles);
     }
     
-    // Инициализируем поиск
     const searchInput = document.getElementById('search-files');
     if (searchInput) {
         searchInput.addEventListener('input', function(e) {
@@ -1062,12 +1033,10 @@ function showModal(title, body, buttons) {
     
     if (!overlay || !titleElement || !bodyElement || !footerElement) return;
     
-    // Устанавливаем содержимое
     titleElement.textContent = title;
     bodyElement.innerHTML = body;
     footerElement.innerHTML = '';
     
-    // Добавляем кнопки
     buttons.forEach(btn => {
         const button = document.createElement('button');
         button.className = `modal-btn ${btn.class}`;
@@ -1076,15 +1045,12 @@ function showModal(title, body, buttons) {
         footerElement.appendChild(button);
     });
     
-    // Показываем модалку
     overlay.style.display = 'flex';
     
-    // Закрытие по клику вне модалки
     overlay.addEventListener('click', function(e) {
         if (e.target === overlay) hideModal();
     });
     
-    // Закрытие по Escape
     document.addEventListener('keydown', function closeOnEscape(e) {
         if (e.key === 'Escape') {
             hideModal();
@@ -1104,14 +1070,12 @@ function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
     if (!container) return;
     
-    // Удаляем старые тосты
     const oldToasts = container.querySelectorAll('.toast');
     oldToasts.forEach(toast => {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
     });
     
-    // Создаем новый тост
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     
@@ -1132,16 +1096,13 @@ function showToast(message, type = 'info') {
     
     container.appendChild(toast);
     
-    // Анимация появления
     setTimeout(() => toast.classList.add('show'), 10);
     
-    // Закрытие по кнопке
     toast.querySelector('.toast-close').addEventListener('click', () => {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
     });
     
-    // Автоматическое закрытие
     setTimeout(() => {
         if (toast.parentNode) {
             toast.classList.remove('show');
