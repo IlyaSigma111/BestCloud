@@ -2,7 +2,7 @@
 // КОНФИГУРАЦИЯ NCC
 // ====================
 const NCC_CONFIG = {
-    PASSWORD: "NCC2024", // Пароль администратора
+    PASSWORD: "JojoTop1", // Пароль администратора
     MAX_FILES: 10,
     MAX_SIZE: 500 * 1024 * 1024, // 500MB
     APP_NAME: "NeoCascadeCloud"
@@ -1111,3 +1111,4 @@ window.deleteNCCFile = deleteNCCFile;
 window.loadNCCFiles = loadNCCFiles;
 
 console.log("🚀 NCC (NeoCascadeCloud) готов к работе!");
+
